@@ -23,7 +23,12 @@ var DoctorModel = connection.model("Doctor", DoctorSchema, "Doctor");
 
 const HosptialSchema = new mongoose.Schema({
   name: String,
-  Location: String,
+  Location: {
+    City: String,
+    Country: String,
+    Street: String,
+    Apartment: String,
+  },
   Phone_number: String,
   Region: String,
   createBy: String,
@@ -77,14 +82,12 @@ const PatientSchema = new mongoose.Schema({
       Phone_number: String,
     },
   ],
-  Location: [
-    {
-      City: String,
-      Country: String,
-      Street: String,
-      Apartment: String,
-    },
-  ],
+  Location: {
+    City: String,
+    Country: String,
+    Street: String,
+    Apartment: String,
+  },
   Age: Number,
   Date_of_Birth: String,
   Pregnant: Boolean,
@@ -108,10 +111,14 @@ const TreatmentSchema = new mongoose.Schema({
   missed_dose_reason: String,
   Side_Effect: String,
   dtCreated: Date,
-  dtUpdated: Date
+  dtUpdated: Date,
 });
 
-var TreatmentModel = connection.model("Treatment", TreatmentSchema, "Treatment");
+var TreatmentModel = connection.model(
+  "Treatment",
+  TreatmentSchema,
+  "Treatment"
+);
 
 const LabortorySchema = new mongoose.Schema({
   case_id: mongoose.SchemaTypes.ObjectId,
@@ -120,27 +127,31 @@ const LabortorySchema = new mongoose.Schema({
     Description: String,
     Collection_Date: Date,
     Laboratory_name: String,
-    Phone_Number: String
+    Phone_Number: String,
   },
   PCR_of_Blood: {
     status: String,
     Description: String,
     Collection_Date: Date,
     Laboratory_name: String,
-    Phone_Number: String
+    Phone_Number: String,
   },
   RDT: {
     status: String,
     Description: String,
     Collection_Date: Date,
     Laboratory_name: String,
-    Phone_Number: String
+    Phone_Number: String,
   },
   dtCreated: Date,
-  dtUpdated: Date
+  dtUpdated: Date,
 });
 
-var LabortaryModel = connection.model("Laboratory", LabortorySchema, "Laboratory");
+var LabortaryModel = connection.model(
+  "Laboratory",
+  LabortorySchema,
+  "Laboratory"
+);
 
 const caseSchema = new mongoose.Schema({
   Patient_id: mongoose.SchemaTypes.ObjectId,
@@ -151,14 +162,14 @@ const caseSchema = new mongoose.Schema({
     {
       Signs: String,
       Symptomatic: String,
-      Remark: String
-    }
+      Remark: String,
+    },
   ],
   Clinical_Complication: [
     {
       Complication: String,
-      Description: String
-    }
+      Description: String,
+    },
   ],
   Diagnosis: String,
   Hospitalized: Boolean,
@@ -166,21 +177,20 @@ const caseSchema = new mongoose.Schema({
   blood_transfusion: Boolean,
   Patient_Status: {
     status: String,
-    Status_Date: Date
+    Status_Date: Date,
   },
   Disease_case: String,
   Travel_hisotry: {
     destination: String,
     start_date: Date,
     end_Date: Date,
-    Remark: String
+    Remark: String,
   },
   dtCreated: Date,
-  dtupdated: Date
+  dtupdated: Date,
 });
 
 var caseModel = connection.model("Case", caseSchema, "Case");
-
 
 export default {
   Doctor: DoctorModel,
@@ -191,5 +201,5 @@ export default {
   Patient: PatientModel,
   Treatment: TreatmentModel,
   Labortary: LabortaryModel,
-  case: caseModel
+  case: caseModel,
 };
