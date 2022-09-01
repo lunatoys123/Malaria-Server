@@ -98,9 +98,89 @@ const PatientSchema = new mongoose.Schema({
 
 var PatientModel = connection.model("Patient", PatientSchema, "Patient");
 
-const Treatment = new mongoose.Schema({
-    case_id: mongoose.SchemaTypes.ObjectId
-})
+const TreatmentSchema = new mongoose.Schema({
+  case_id: mongoose.SchemaTypes.ObjectId,
+  Threapy: String,
+  Received: String,
+  Chemoprophylaxis_taken: String,
+  Drug_taken: String,
+  pills_taken: String,
+  missed_dose_reason: String,
+  Side_Effect: String,
+  dtCreated: Date,
+  dtUpdated: Date
+});
+
+var TreatmentModel = connection.model("Treatment", TreatmentSchema, "Treatment");
+
+const LabortorySchema = new mongoose.Schema({
+  case_id: mongoose.SchemaTypes.ObjectId,
+  Blood_Smear: {
+    status: String,
+    Description: String,
+    Collection_Date: Date,
+    Laboratory_name: String,
+    Phone_Number: String
+  },
+  PCR_of_Blood: {
+    status: String,
+    Description: String,
+    Collection_Date: Date,
+    Laboratory_name: String,
+    Phone_Number: String
+  },
+  RDT: {
+    status: String,
+    Description: String,
+    Collection_Date: Date,
+    Laboratory_name: String,
+    Phone_Number: String
+  },
+  dtCreated: Date,
+  dtUpdated: Date
+});
+
+var LabortaryModel = connection.model("Laboratory", LabortorySchema, "Laboratory");
+
+const caseSchema = new mongoose.Schema({
+  Patient_id: mongoose.SchemaTypes.ObjectId,
+  Doctor_id: mongoose.SchemaTypes.ObjectId,
+  Discharge_Date: Date,
+  Admit_Date: Date,
+  Symptoms: [
+    {
+      Signs: String,
+      Symptomatic: String,
+      Remark: String
+    }
+  ],
+  Clinical_Complication: [
+    {
+      Complication: String,
+      Description: String
+    }
+  ],
+  Diagnosis: String,
+  Hospitalized: Boolean,
+  Emergency: Boolean,
+  blood_transfusion: Boolean,
+  Patient_Status: {
+    status: String,
+    Status_Date: Date
+  },
+  Disease_case: String,
+  Travel_hisotry: {
+    destination: String,
+    start_date: Date,
+    end_Date: Date,
+    Remark: String
+  },
+  dtCreated: Date,
+  dtupdated: Date
+});
+
+var caseModel = connection.model("Case", caseSchema, "Case");
+
 
 export default {
   Doctor: DoctorModel,
@@ -109,4 +189,7 @@ export default {
   Country_code: countryCodeModel,
   WHO: WHOModel,
   Patient: PatientModel,
+  Treatment: TreatmentModel,
+  Labortary: LabortaryModel,
+  case: caseModel
 };
