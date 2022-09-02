@@ -22,12 +22,12 @@ const DoctorSchema = new mongoose.Schema({
 var DoctorModel = connection.model("Doctor", DoctorSchema, "Doctor");
 
 const HosptialSchema = new mongoose.Schema({
-  name: String,
+  name: { type: String, required: true },
   Location: {
-    City: String,
-    Country: String,
-    Street: String,
-    Apartment: String,
+    City: { type: String, required: true },
+    Country: { type: String, required: true },
+    Street: { type: String, required: true },
+    Apartment: { type: String, required: true },
   },
   Phone_number: String,
   Region: String,
@@ -50,6 +50,13 @@ var MessageModel = connection.model("Message", MessageSchema, "Message");
 const countryCodeSchema = new mongoose.Schema({
   code: String,
   country_name: String,
+}, {
+  toObject: { virtuals: true },
+  toJSON: { virtuals: true }
+});
+
+countryCodeSchema.virtual("Options").get(function () {
+  return `${this.code} (${this.country_name})`;
 });
 
 var countryCodeModel = connection.model(
