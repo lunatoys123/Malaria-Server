@@ -9,14 +9,14 @@ var connection = mongoose.createConnection(
 );
 
 const DoctorSchema = new mongoose.Schema({
-  Login_name: String,
+  Login_name: { type: String, required: true },
   Role: String,
-  Hospital_id: mongoose.SchemaTypes.ObjectId,
-  Password: String,
-  Phone_number: String,
+  Hospital_id: {type: mongoose.SchemaTypes.ObjectId, required: true},
+  Password: { type: String, required: true },
+  Phone_number: { type: String, required: true },
   createBy: String,
   Account_status: String,
-  Email: String,
+  Email: { type: String, required: true },
 });
 
 var DoctorModel = connection.model("Doctor", DoctorSchema, "Doctor");
