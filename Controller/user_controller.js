@@ -72,7 +72,13 @@ export const Login = async (req, res) => {
       "Malaria",
       { expiresIn: "1d" }
     );
-    return res.status(200).send({ status: status_code.Success, token });
+    return res
+      .status(200)
+      .send({
+        status: status_code.Success,
+        Message: "Login successful",
+        token,
+      });
   } else {
     return res
       .status(404)

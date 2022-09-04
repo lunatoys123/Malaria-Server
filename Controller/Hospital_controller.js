@@ -53,3 +53,10 @@ export const findAllRegion = async (req, res) => {
 
   return res.status(200).send({ status: status_code.Success, regions });
 };
+
+export const findAllHospital = async (req, res) => {
+  var All_Hospital = await Hospital.find({}, { name: 1 });
+  return res
+    .status(200)
+    .send({ status: status_code.Success, Hospital: All_Hospital });
+};

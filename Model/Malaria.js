@@ -11,7 +11,7 @@ var connection = mongoose.createConnection(
 const DoctorSchema = new mongoose.Schema({
   Login_name: { type: String, required: true },
   Role: String,
-  Hospital_id: {type: mongoose.SchemaTypes.ObjectId, required: true},
+  Hospital_id: { type: mongoose.SchemaTypes.ObjectId, required: true },
   Password: { type: String, required: true },
   Phone_number: { type: String, required: true },
   createBy: String,
@@ -47,13 +47,16 @@ const MessageSchema = new mongoose.Schema({
 
 var MessageModel = connection.model("Message", MessageSchema, "Message");
 
-const countryCodeSchema = new mongoose.Schema({
-  code: String,
-  country_name: String,
-}, {
-  toObject: { virtuals: true },
-  toJSON: { virtuals: true }
-});
+const countryCodeSchema = new mongoose.Schema(
+  {
+    code: String,
+    country_name: String,
+  },
+  {
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
+  }
+);
 
 countryCodeSchema.virtual("Options").get(function () {
   return `${this.code} (${this.country_name})`;
@@ -81,10 +84,11 @@ const WHOSchema = new mongoose.Schema({
 var WHOModel = connection.model("WHO_DATA", WHOSchema, "WHO_DATA");
 
 const PatientSchema = new mongoose.Schema({
-  name: String,
-  Identification: String,
+  name: { type: String, required: true },
+  Identification: { type: String, required: true },
   Contact: [
     {
+      _id: false,
       Type: String,
       Phone_number: String,
     },
@@ -99,11 +103,11 @@ const PatientSchema = new mongoose.Schema({
   Date_of_Birth: String,
   Pregnant: Boolean,
   Email: String,
-  Gender: String,
+  Gender: { type: String, required: true },
   CreateBy: String,
-  dtCreatedBy: Date,
+  dtCreated: Date,
   UpdateBy: String,
-  dtUpdatedBy: Date,
+  dtUpdated: Date,
 });
 
 var PatientModel = connection.model("Patient", PatientSchema, "Patient");
