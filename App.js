@@ -17,8 +17,7 @@ app.use(cors());
 app.options("*", cors());
 
 app.use(authJWT());
-//app.use(errorHandler);
-app.all("*", errorHandler);
+app.use(errorHandler);
 
 app.use("/Malaria/Hospital", HospitalRouter);
 app.use("/Malaria/User", userRouter);

@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 
 const Patient = Malaria.Patient;
 const Case = Malaria.case;
+const Laboratory = Malaria.Labortary;
+const Treatment = Malaria.Treatment;
 
 export const AddCase = async (req, res) => {
   const request = req.body;
@@ -61,5 +63,53 @@ export const AddCase = async (req, res) => {
 };
 
 export const addLaboratory = async (req, res) => {
-  
+  const request = req.body;
+  const case_id = request.case_id;
+  const Blood_Smear = request.Blood_Smear;
+  const PCR_of_Blood = request.PCR_of_Blood;
+  const RDT = request.RDT;
+
+  var newLaboratory = new Laboratory({
+    case_id: mongoose.Types.ObjectId(case_id),
+    Blood_Smear,
+    PCR_of_Blood,
+    RDT,
+  });
+
+  await newLaboratory
+    .save()
+    .then((data) => {
+      return res.status(200).send({
+        status: status_code.Success,
+        Message: "Labortary record establish",
+      });
+    })
+    .catch((err) => {
+      return res
+        .status(404)
+        .send({ status: status_code.Failed, error: err.message });
+    });
+};
+
+export const addTreatment = async (req, res) => {
+  console.log("add Treatment");
+  const request = req.body;
+  const case_id = request.case_id;
+
+  const newTreatment = new Treatment({
+    case_id: mongoose.Types.ObjectId(case_id),
+  });
+
+  await newTreatment
+    .save()
+    .then((data) => {
+      return res
+        .status(200)
+        .send({ status: status_code.Success, Message: "Treatment establish" });
+    })
+    .catch((err) => {
+      return res
+        .status(404)
+        .send({ status: status_code.Failed, Error: err.message });
+    });
 };
