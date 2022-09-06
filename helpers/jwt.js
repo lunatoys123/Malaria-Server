@@ -5,7 +5,7 @@ const authJWT = () => {
     secret: "Malaria",
     algorithms: ["HS256"],
   }).unless({
-    path: ["/Malaria/User/Login", "/Malaria/Hospital/all"],
+    path: ["/Malaria/User/login", "/Malaria/Hospital/all"],
   });
 };
 
