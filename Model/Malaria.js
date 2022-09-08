@@ -5,6 +5,9 @@ var connection = mongoose.createConnection(
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,
+  },
+  () => {
+    console.log("Malaria Database Connected");
   }
 );
 
