@@ -12,7 +12,8 @@ import authJWT from "./helpers/jwt.js";
 import errorHandler from "./helpers/ErrorHandler.js";
 
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
+//app.use(bodyParser.json());
 app.use(morgan("tiny"));
 app.use(cors());
 app.options("*", cors());
