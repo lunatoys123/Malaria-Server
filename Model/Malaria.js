@@ -8,6 +8,9 @@ var connection = mongoose.createConnection(
   },
   () => {
     console.log("Malaria Database Connected");
+  },
+  (err) => {
+    console.log(err);
   }
 );
 
