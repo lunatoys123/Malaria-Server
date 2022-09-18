@@ -23,13 +23,34 @@ export const Preview = async (req, res) => {
 
 export const WHO_Data = async (req, res) => {
   const option = req.query.option;
+  const selectcountry = req.query.selectcountry;
 
   var Indicator_Key = getIndicator_key(option);
+  console.log(Indicator_Key);
   if (Indicator_Key) {
     var dataObject = await WHO.find(
-      { Indication_code: Indicator_Key },
-      { data: 1, country_code: 1, _id: 0 }
+      { Indication_code: Indicator_Key, country_code: selectcountry },
+      { data: 1, _id: 0 }
     );
+
+    dataObject = dataObject
+      .map((d) => {
+        const data = d.data;
+        const nested = data.map((n) => {
+          return {
+            value: n.value,
+            High: n.High,
+            Low: n.Low,
+            Year: n.Year,
+          };
+        });
+        return nested;
+      })
+      .reduce(function (prev, next) {
+        return prev.concat(next);
+      });
+
+    //console.log(dataObject);
     return res
       .status(200)
       .send({ status: status_code.Success, data: dataObject });
