@@ -11,6 +11,8 @@ export const Preview = async (req, res) => {
     return WHO_Indicator_code[code];
   });
 
+  console.log("keys: ", keys)
+
   if (keys == null || keys.length == 0) {
     return res.status(404).send({
       status: status_code.Failed,
