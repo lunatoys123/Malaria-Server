@@ -68,6 +68,7 @@ export const Login = async (req, res) => {
     const token = jwt.sign(
       {
         login_name: user.Login_name,
+        Doctor_id: user._id
       },
       "Malaria",
       { expiresIn: "1d" }

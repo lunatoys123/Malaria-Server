@@ -90,30 +90,31 @@ const WHOSchema = new mongoose.Schema({
 var WHOModel = connection.model("WHO_DATA", WHOSchema, "WHO_DATA");
 
 const PatientSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  Identification: { type: String, required: true },
-  Contact: [
-    {
-      _id: false,
-      Type: String,
-      Phone_number: String,
-    },
-  ],
-  Location: {
-    City: String,
-    Country: String,
-    Street: String,
-    Apartment: String,
+  Name: { type: String, required: true },
+  Id: { type: String, required: true },
+  Phone: String,
+  Home:{
+    Location: String,
+    Telphone: String,
+    Contact_Person: String,
+    Contact_Person_Tel: String
+  },
+  Work:{
+    Location: String,
+    Telphone: String,
+    Contact_Person: String,
+    Contact_Person_Tel: String
   },
   Age: Number,
   Date_of_Birth: String,
   Pregnant: Boolean,
+  PregnantDate:Date,
   Email: String,
   Gender: { type: String, required: true },
   CreateBy: String,
-  dtCreated: Date,
+  dtCreated: {type: Date, default: Date.now()},
   UpdateBy: String,
-  dtUpdated: Date,
+  dtUpdated: {type: Date, default: Date.now()},
 });
 
 var PatientModel = connection.model("Patient", PatientSchema, "Patient");
@@ -173,38 +174,48 @@ var LabortaryModel = connection.model(
 const caseSchema = new mongoose.Schema({
   Patient_id: mongoose.SchemaTypes.ObjectId,
   Doctor_id: mongoose.SchemaTypes.ObjectId,
-  Discharge_Date: Date,
-  Admit_Date: Date,
+  // Discharge_Date: Date,
+  // Admit_Date: Date,
   Symptoms: [
     {
-      Signs: String,
+      Sign: [],
       Symptomatic: String,
       Remark: String,
+      Onset_date: Date,
     },
   ],
   Clinical_Complication: [
     {
-      Complication: String,
+      Complications: [],
       Description: String,
     },
   ],
+  Hospitalization: [
+    {
+      Admit_Date: Date,
+      City: String,
+      DisCharge_Date: Date,
+      Discharge_Diagnosis: String,
+      Street_Address: String,
+      Zip_Code: String,
+    }
+  ],
+  Previous_Diagnosis_Malaria:{},
   Diagnosis: String,
-  Hospitalized: Boolean,
-  Emergency: Boolean,
-  blood_transfusion: Boolean,
-  Patient_Status: {
-    status: String,
-    Status_Date: Date,
-  },
-  Disease_case: String,
-  Travel_hisotry: {
-    destination: String,
-    start_date: Date,
-    end_Date: Date,
-    Remark: String,
-  },
-  dtCreated: Date,
-  dtupdated: Date,
+  // Hospitalized: Boolean,
+  // Emergency: Boolean,
+  // blood_transfusion: Boolean,
+  Patient_Status: String,
+  Status_date: Date,
+  Report_Status: String,
+  // Disease_case: String,
+  Travel_hisotry: [{
+    Location: String,
+    Date_Start: Date,
+    Date_End: Date,
+  }],
+  dtCreated: {type:Date, default: Date.now()},
+  dtupdated: {type:Date, default: Date.now()},
 });
 
 var caseModel = connection.model("Case", caseSchema, "Case");

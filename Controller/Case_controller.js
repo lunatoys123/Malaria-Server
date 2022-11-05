@@ -10,8 +10,11 @@ const Doctor = Malaria.Doctor;
 
 export const AddCase = async (req, res) => {
   const request = req.body;
-  const Patient_data = request.Patient_data;
-  const case_data = request.case;
+  var Patient_data = request.Patient_data;
+  var case_data = request.case;
+  const user = request.user;
+
+  // console.log(user);
 
   if (!Patient_data) {
     return res.status(400).send({
@@ -20,16 +23,9 @@ export const AddCase = async (req, res) => {
     });
   }
 
-  var newPatient = new Patient({
-    name: Patient_data.name,
-    Identification: Patient_data.Identification,
-    Contact: Patient_data.Contact,
-    Location: Patient_data.Location,
-    dtCreated: Date.now(),
-    dtUpdated: Date.now(),
-    Gender: Patient_data.Gender,
-    Date_of_Birth: Date.now(),
-  });
+  Patient_data = {...Patient_data, CreateBy: user.login_name, UpdateBy: user.login_name}
+
+  var newPatient = new Patient(Patient_data);
 
   newPatient = await newPatient.save().catch((err) => {
     return res
@@ -39,15 +35,9 @@ export const AddCase = async (req, res) => {
 
   const Patient_id = newPatient._id;
 
-  var newCase = new Case({
-    Patient_id: Patient_id,
-    Doctor_id: mongoose.Types.ObjectId(case_data.Doctor_id),
-    Symptoms: case_data.Symptoms,
-    Clinical_Complication: case_data.Clinical_Complication,
-    Hospitalized: case_data.Hospitalized,
-    Emergency: case_data.Emergency,
-    blood_transfusion: case_data.blood_transfusion,
-  });
+  case_data = {...case_data, Patient_id: mongoose.Types.ObjectId(Patient_id), Doctor_id: mongoose.Types.ObjectId(user.Doctor_id)}
+
+  var newCase = new Case(case_data);
 
   await newCase
     .save()
