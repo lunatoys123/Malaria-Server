@@ -1,6 +1,7 @@
 import Malaria from "../Model/Malaria.js";
 import { status_code } from "../Common/status_code.js";
 import mongoose from "mongoose";
+import { request } from "express";
 
 const Patient = Malaria.Patient;
 const Case = Malaria.case;
@@ -205,4 +206,41 @@ export const viewReport = async (req, res) => {
   ]);
 
   return res.status(200).send(dataObject);
+}
+
+export const getCaseByDoctorId = async(req, res)=>{
+  const Doctor_id = req.query.Doctor_id
+
+  const case_object = await Case.aggregate([
+    {
+      $match:{
+        Doctor_id: mongoose.Types.ObjectId(Doctor_id)
+      }
+    },
+    {
+      $lookup:{
+        from: "Patient",
+        localField: "Patient_id",
+        foreignField: "_id",
+        as: "Patient"
+      }
+    },
+    {
+      $unwind:{
+        path:"$Patient"
+      }
+    },
+    {
+      $project:{
+        Patient_Name: "$Patient.Name",
+        Patient_Status:1,
+        Status_date:1,
+        Report_Status: 1,
+        Patient_id: 1
+      }
+    }
+  ])
+
+
+  return res.status(200).send(case_object);
 }
