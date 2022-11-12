@@ -244,3 +244,13 @@ export const getCaseByDoctorId = async(req, res)=>{
 
   return res.status(200).send(case_object);
 }
+
+export const getCaseByCaseId = async(req, res) =>{
+  const case_id = req.query.case_id;
+  //console.log(case_id);
+  const case_Object = await Case.findOne(
+    {_id: case_id}, 
+    {Symptoms:1, Hospitalization: 1, Travel_hisotry: 1, Clinical_Complications: 1, Previous_Diagnosis_Malaria: 1, Patient_Status:1, Report_Status: 1, Status_date: 1});
+  
+  return res.status(200).send(case_Object);
+}

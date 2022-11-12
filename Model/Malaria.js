@@ -176,22 +176,19 @@ const caseSchema = new mongoose.Schema({
   Doctor_id: mongoose.SchemaTypes.ObjectId,
   // Discharge_Date: Date,
   // Admit_Date: Date,
-  Symptoms: [
-    {
+  Symptoms:{
       Sign: [],
       Symptomatic: String,
       Remark: String,
       Onset_date: Date,
-    },
-  ],
-  Clinical_Complication: [
-    {
+  },
+  Clinical_Complications: {
       Complications: [],
       Description: String,
-    },
-  ],
+  },
   Hospitalization: [
     {
+      Hospital: String,
       Admit_Date: Date,
       City: String,
       DisCharge_Date: Date,
