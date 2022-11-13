@@ -250,7 +250,7 @@ export const getCaseByCaseId = async(req, res) =>{
   //console.log(case_id);
   const case_Object = await Case.findOne(
     {_id: case_id}, 
-    {Symptoms:1, Hospitalization: 1, Travel_hisotry: 1, Clinical_Complications: 1, Previous_Diagnosis_Malaria: 1, Patient_Status:1, Report_Status: 1, Status_date: 1});
+    {Symptoms:1, Hospitalization: 1, Travel_History: 1, Clinical_Complications: 1, Previous_Diagnosis_Malaria: 1, Patient_Status:1, Report_Status: 1, Status_date: 1});
   
   return res.status(200).send(case_Object);
 }

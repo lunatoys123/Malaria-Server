@@ -206,7 +206,7 @@ const caseSchema = new mongoose.Schema({
   Status_date: Date,
   Report_Status: String,
   // Disease_case: String,
-  Travel_hisotry: [{
+  Travel_History: [{
     Location: String,
     Date_Start: Date,
     Date_End: Date,
