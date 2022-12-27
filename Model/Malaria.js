@@ -93,39 +93,41 @@ const PatientSchema = new mongoose.Schema({
   Name: { type: String, required: true },
   Id: { type: String, required: true },
   Phone: String,
-  Home:{
+  Home: {
     Location: String,
     Telphone: String,
     Contact_Person: String,
-    Contact_Person_Tel: String
+    Contact_Person_Tel: String,
   },
-  Work:{
+  Work: {
     Location: String,
     Telphone: String,
     Contact_Person: String,
-    Contact_Person_Tel: String
+    Contact_Person_Tel: String,
   },
   Age: Number,
   Date_of_Birth: String,
   Pregnant: Boolean,
-  PregnantDate:Date,
+  PregnantDate: Date,
   Email: String,
   Gender: { type: String, required: true },
   CreateBy: String,
-  dtCreated: {type: Date, default: Date.now()},
+  dtCreated: { type: Date, default: Date.now() },
   UpdateBy: String,
-  dtUpdated: {type: Date, default: Date.now()},
+  dtUpdated: { type: Date, default: Date.now() },
 });
 
 var PatientModel = connection.model("Patient", PatientSchema, "Patient");
 
 const TreatmentSchema = new mongoose.Schema({
   case_id: mongoose.SchemaTypes.ObjectId,
-  Threapy: String,
+  Therapy: String,
   Received: String,
   Chemoprophylaxis_taken: String,
   Drug_taken: String,
+  Drug_taken_Other: String,
   pills_taken: String,
+  pills_taken_Other: String,
   missed_dose_reason: String,
   Side_Effect: String,
   dtCreated: Date,
@@ -176,15 +178,15 @@ const caseSchema = new mongoose.Schema({
   Doctor_id: mongoose.SchemaTypes.ObjectId,
   // Discharge_Date: Date,
   // Admit_Date: Date,
-  Symptoms:{
-      Sign: [],
-      Symptomatic: String,
-      Remark: String,
-      Onset_date: Date,
+  Symptoms: {
+    Sign: [],
+    Symptomatic: String,
+    Remark: String,
+    Onset_date: Date,
   },
   Clinical_Complications: {
-      Complications: [],
-      Description: String,
+    Complications: [],
+    Description: String,
   },
   Hospitalization: [
     {
@@ -195,9 +197,9 @@ const caseSchema = new mongoose.Schema({
       Discharge_Diagnosis: String,
       Street_Address: String,
       Zip_Code: String,
-    }
+    },
   ],
-  Previous_Diagnosis_Malaria:{},
+  Previous_Diagnosis_Malaria: {},
   Diagnosis: String,
   // Hospitalized: Boolean,
   // Emergency: Boolean,
@@ -206,13 +208,15 @@ const caseSchema = new mongoose.Schema({
   Status_date: Date,
   Report_Status: String,
   // Disease_case: String,
-  Travel_History: [{
-    Location: String,
-    Date_Start: Date,
-    Date_End: Date,
-  }],
-  dtCreated: {type:Date, default: Date.now()},
-  dtupdated: {type:Date, default: Date.now()},
+  Travel_History: [
+    {
+      Location: String,
+      Date_Start: Date,
+      Date_End: Date,
+    },
+  ],
+  dtCreated: { type: Date, default: Date.now() },
+  dtupdated: { type: Date, default: Date.now() },
 });
 
 var caseModel = connection.model("Case", caseSchema, "Case");
