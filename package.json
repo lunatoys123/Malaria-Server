@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "local": "./node_modules/.bin/nodemon App.js"
+    "local": ".\\node_modules\\.bin\\nodemon App.js"
   },
   "keywords": [],
   "author": "",
