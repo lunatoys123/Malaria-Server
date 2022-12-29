@@ -159,6 +159,8 @@ const LabortorySchema = new mongoose.Schema({
   RDT: {
     status: String,
     Description: String,
+    Type: String,
+    Type_Other: String,
     Collection_Date: Date,
     Laboratory_name: String,
     Phone_Number: String,
