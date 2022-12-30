@@ -65,39 +65,35 @@ export const addLaboratory = async (req, res) => {
 	const RDT = request.Laboratory.RDT;
 
 	if (!mongoose.Types.ObjectId.isValid(case_id)) {
-	  return res.status(404).send({
-	    status: status_code.Failed,
-	    Error: "case id format is not valid",
-	  });
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "case id format is not valid",
+		});
 	}
 
 	const case_id_exist = await Case.findOne({ _id: case_id });
 	if (!case_id_exist) {
-	  return res
-	    .status(404)
-	    .send({ status: status_code.Failed, Error: "case id does not exist" });
+		return res.status(404).send({ status: status_code.Failed, Error: "case id does not exist" });
 	}
 
 	var newLaboratory = new Laboratory({
-	  case_id: mongoose.Types.ObjectId(case_id),
-	  Blood_Smear,
-	  PCR_of_Blood,
-	  RDT,
+		case_id: mongoose.Types.ObjectId(case_id),
+		Blood_Smear,
+		PCR_of_Blood,
+		RDT,
 	});
 
 	await newLaboratory
-	  .save()
-	  .then((data) => {
-	    return res.status(200).send({
-	      status: status_code.Success,
-	      Message: "Laboratory record establish",
-	    });
-	  })
-	  .catch((err) => {
-	    return res
-	      .status(404)
-	      .send({ status: status_code.Failed, Error: err.message });
-	  });
+		.save()
+		.then((data) => {
+			return res.status(200).send({
+				status: status_code.Success,
+				Message: "Laboratory record establish",
+			});
+		})
+		.catch((err) => {
+			return res.status(404).send({ status: status_code.Failed, Error: err.message });
+		});
 };
 
 export const addTreatment = async (req, res) => {
@@ -250,6 +246,14 @@ export const getCaseByDoctorId = async (req, res) => {
 			},
 		},
 		{
+			$lookup: {
+				from: "Laboratory",
+				localField: "_id",
+				foreignField: "case_id",
+				as: "Laboratory",
+			},
+		},
+		{
 			$unwind: {
 				path: "$Patient",
 			},
@@ -264,6 +268,13 @@ export const getCaseByDoctorId = async (req, res) => {
 				haveTreatment: {
 					$cond: {
 						if: { $gt: [{ $size: "$Treatment" }, 0] },
+						then: true,
+						else: false,
+					},
+				},
+				haveLaboratory: {
+					$cond: {
+						if: { $gt: [{ $size: "$Laboratory" }, 0] },
 						then: true,
 						else: false,
 					},
@@ -314,6 +325,21 @@ export const getTreatmentByCaseId = async (req, res) => {
 	);
 
 	return res.status(200).send(Treatment_Object);
+};
+
+export const getLaboratoryByCaseId = async (req, res) => {
+	const case_id = req.query.case_id;
+
+	const Laboratory_Object = await Laboratory.findOne(
+		{ case_id: case_id },
+		{
+			Blood_Smear: 1,
+			PCR_of_Blood: 1,
+			RDT: 1,
+		}
+	);
+
+	return res.status(200).send(Laboratory_Object);
 };
 
 export const updateReportById = async (req, res) => {
@@ -371,6 +397,33 @@ export const updateTreatmentByCaseId = async (req, res) => {
 	})
 		.then((data) => {
 			return res.status(200).send({ status: status_code.Success, Message: "Treatment updated" });
+		})
+		.catch((err) => {
+			return res.status(404).send({ status: status_code.Failed, Error: err });
+		});
+};
+
+export const updateLaboratoryByCaseId = async (req, res) => {
+	const id = req.body.id;
+	const Laboratory_info = req.body.Laboratory;
+
+	if (!mongoose.Types.ObjectId.isValid(id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Laboratory id format is not valid",
+		});
+	}
+
+	if (!Laboratory_info) {
+		return res.status(400).send({
+			status: status_code.Failed,
+			Error: "Laboratory information is not establish correctly",
+		});
+	}
+
+	await Laboratory.findOneAndUpdate({ _id: id }, Laboratory_info, { new: true })
+		.then((data) => {
+			return res.status(200).send({ status: status_code.Success, Message: "Laboratory updated" });
 		})
 		.catch((err) => {
 			return res.status(404).send({ status: status_code.Failed, Error: err });

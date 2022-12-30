@@ -9,7 +9,9 @@ router.get("/view/:doctor_id", caseController.viewReport);
 router.get("/getCaseById", caseController.getCaseByDoctorId);
 router.get("/getCaseByCaseId", caseController.getCaseByCaseId);
 router.get("/getTreatmentByCaseId", caseController.getTreatmentByCaseId);
+router.get("/getLaboratoryByCaseId", caseController.getLaboratoryByCaseId);
 router.put("/updateReportById", caseController.updateReportById);
 router.put("/updateTreatmentByCaseId", caseController.updateTreatmentByCaseId);
+router.put("/updateLaboratoryByCaseId", caseController.updateLaboratoryByCaseId);
 
 export default router;
