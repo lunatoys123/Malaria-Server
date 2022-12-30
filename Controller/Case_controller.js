@@ -102,6 +102,7 @@ export const addTreatment = async (req, res) => {
 
 	const case_id = Treatment_info.case_id;
 	const Therapy = Treatment_info.Therapy;
+	const Therapy_Other = Treatment_info.Therapy_Other;
 	const Received = Treatment_info.Received;
 	const Chemoprophylaxis_taken = Treatment_info.Chemoprophylaxis_taken;
 	const Drug_taken = Treatment_info.Drug_taken;
@@ -121,6 +122,7 @@ export const addTreatment = async (req, res) => {
 	const newTreatment = new Treatment({
 		case_id: mongoose.Types.ObjectId(case_id),
 		Therapy,
+		Therapy_Other,
 		Received,
 		Chemoprophylaxis_taken,
 		Drug_taken,
@@ -320,6 +322,7 @@ export const getTreatmentByCaseId = async (req, res) => {
 			missed_dose_reason: 1,
 			Side_Effect: 1,
 			Therapy: 1,
+			Therapy_Other: 1,
 			Chemoprophylaxis_taken: 1,
 		}
 	);
