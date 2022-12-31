@@ -185,8 +185,8 @@ export const viewReport = async (req, res) => {
 		{
 			$lookup: {
 				from: "Treatment",
-				localField: "string",
-				foreignField: "string",
+				localField: "_id",
+				foreignField: "case_id",
 				as: "Treatment",
 			},
 		},
@@ -218,6 +218,83 @@ export const viewReport = async (req, res) => {
 			},
 		},
 	]);
+
+	return res.status(200).send(dataObject);
+};
+
+export const viewReportByCaseId = async (req, res) => {
+	var id = req.params.id;
+
+	if (mongoose.Types.ObjectId.isValid(id)) {
+		id = mongoose.Types.ObjectId(id);
+	} else {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id format is not valid",
+		});
+	}
+
+	const exists_case_id = await Case.findOne({ _id: id }, {});
+	if (!exists_case_id) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Case id does not exist",
+		});
+	}
+
+	var dataObject = await Case.aggregate([
+		{
+			$match: {
+				_id: id,
+			},
+		},
+		{
+			$lookup: {
+				from: "Laboratory",
+				localField: "_id",
+				foreignField: "case_id",
+				as: "Laboratory",
+			},
+		},
+		{
+			$lookup: {
+				from: "Treatment",
+				localField: "_id",
+				foreignField: "case_id",
+				as: "Treatment",
+			},
+		},
+		{
+			$lookup: {
+				from: "Patient",
+				localField: "Patient_id",
+				foreignField: "_id",
+				as: "Patient",
+			},
+		},
+		{
+			$project: {
+				Patient: {
+					$first: "$Patient",
+				},
+				Treatment: {
+					$first: "$Treatment",
+				},
+				Laboratory: {
+					$first: "$Laboratory",
+				},
+				Hospitalization: 1,
+				Symptoms: 1,
+				Clinical_Complications: 1,
+				Previous_Diagnosis_Malaria: 1,
+				Patient_Status: 1,
+				Report_Status: 1,
+				Status_date: 1,
+			},
+		},
+	]);
+
+	dataObject = dataObject[0];
 
 	return res.status(200).send(dataObject);
 };
