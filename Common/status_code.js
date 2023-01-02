@@ -17,3 +17,9 @@ export const WHO_Indicator_code = {
   "MALARIA_PRES_CASES": "Number of presumed malaria cases",
   "MALARIA_TOTAL_CASES": "Total number of  malaria cases (presumed + confirmed cases)"
 }
+
+export const Operation_Mode = {
+  create: "create",
+  edit: "edit",
+  createWithPatientId: "createWithPatientId",
+};

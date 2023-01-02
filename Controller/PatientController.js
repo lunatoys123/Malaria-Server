@@ -15,16 +15,19 @@ export const getPatientList = async (req, res) => {
 			},
 		},
 		{
-			$lookup: {
-				from: "Patient",
-				localField: "Patient_id",
-				foreignField: "_id",
-				as: "Patient",
+			$group: {
+				_id: null,
+				Patient_id: {
+					$addToSet: "$Patient_id",
+				},
 			},
 		},
 		{
-			$project: {
-				Patient: 1,
+			$lookup: {
+				from: "Patient",
+				let: { patient_id: "$Patient_id" },
+				pipeline: [{ $match: { $expr: { $in: ["$_id", "$$patient_id"] } } }],
+				as: "Patient",
 			},
 		},
 		{

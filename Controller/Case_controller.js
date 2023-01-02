@@ -1,8 +1,6 @@
 import Malaria from "../Model/Malaria.js";
-import { status_code } from "../Common/status_code.js";
+import { status_code, Operation_Mode } from "../Common/status_code.js";
 import mongoose from "mongoose";
-import { request } from "express";
-import { expressjwt } from "express-jwt";
 
 const Patient = Malaria.Patient;
 const Case = Malaria.case;
@@ -15,46 +13,78 @@ export const AddCase = async (req, res) => {
 	var Patient_data = request.Patient_data;
 	var case_data = request.case;
 	const user = request.user;
+	const mode = request.mode;
 
-	// console.log(user);
+	if (mode == Operation_Mode.create) {
+		if (!Patient_data) {
+			return res.status(400).send({
+				status: status_code.Failed,
+				Error: "Patient Data is not establish correctly",
+			});
+		}
 
-	if (!Patient_data) {
-		return res.status(400).send({
-			status: status_code.Failed,
-			Error: "Patient Data is not establish correctly",
-		});
-	}
+		Patient_data = {
+			...Patient_data,
+			CreateBy: user.login_name,
+			UpdateBy: user.login_name,
+		};
 
-	Patient_data = {
-		...Patient_data,
-		CreateBy: user.login_name,
-		UpdateBy: user.login_name,
-	};
+		var newPatient = new Patient(Patient_data);
 
-	var newPatient = new Patient(Patient_data);
-
-	newPatient = await newPatient.save().catch((err) => {
-		return res.status(400).send({ status: status_code.Failed, Error: err.message });
-	});
-
-	const Patient_id = newPatient._id;
-
-	case_data = {
-		...case_data,
-		Patient_id: mongoose.Types.ObjectId(Patient_id),
-		Doctor_id: mongoose.Types.ObjectId(user.Doctor_id),
-	};
-
-	var newCase = new Case(case_data);
-
-	await newCase
-		.save()
-		.then((data) => {
-			return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
-		})
-		.catch((err) => {
+		newPatient = await newPatient.save().catch(err => {
 			return res.status(400).send({ status: status_code.Failed, Error: err.message });
 		});
+
+		const Patient_id = newPatient._id;
+
+		if (!case_data) {
+			return res.status(400).send({
+				status: status_code.Failed,
+				Error: "Case Data is not establish correctly",
+			});
+		}
+
+		case_data = {
+			...case_data,
+			Patient_id: mongoose.Types.ObjectId(Patient_id),
+			Doctor_id: mongoose.Types.ObjectId(user.Doctor_id),
+		};
+
+		var newCase = new Case(case_data);
+
+		await newCase
+			.save()
+			.then(data => {
+				return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
+			})
+			.catch(err => {
+				return res.status(400).send({ status: status_code.Failed, Error: err.message });
+			});
+	} else if (mode === Operation_Mode.createWithPatientId) {
+		if (!case_data) {
+			return res.status(400).send({
+				status: status_code.Failed,
+				Error: "Case Data is not establish correctly",
+			});
+		}
+
+		case_data = {
+			...case_data,
+			Patient_id: mongoose.Types.ObjectId(case_data.Patient_id),
+			Doctor_id: mongoose.Types.ObjectId(user.Doctor_id),
+		};
+
+		var newCase = new Case(case_data);
+
+		await newCase
+			.save()
+			.then(data => {
+				return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
+			})
+			.catch(err => {
+				return res.status(400).send({ status: status_code.Failed, Error: err.message });
+			});
+	}
 };
 
 export const addLaboratory = async (req, res) => {
@@ -85,13 +115,13 @@ export const addLaboratory = async (req, res) => {
 
 	await newLaboratory
 		.save()
-		.then((data) => {
+		.then(data => {
 			return res.status(200).send({
 				status: status_code.Success,
 				Message: "Laboratory record establish",
 			});
 		})
-		.catch((err) => {
+		.catch(err => {
 			return res.status(404).send({ status: status_code.Failed, Error: err.message });
 		});
 };
@@ -143,10 +173,10 @@ export const addTreatment = async (req, res) => {
 
 	await newTreatment
 		.save()
-		.then((data) => {
+		.then(data => {
 			return res.status(200).send({ status: status_code.Success, Message: "Treatment establish" });
 		})
-		.catch((err) => {
+		.catch(err => {
 			return res.status(404).send({ status: status_code.Failed, Error: err.message });
 		});
 };
@@ -273,6 +303,14 @@ export const viewReportByCaseId = async (req, res) => {
 			},
 		},
 		{
+			$lookup: {
+				from: "Doctor",
+				localField: "Doctor_id",
+				foreignField: "_id",
+				as: "Doctor",
+			},
+		},
+		{
 			$project: {
 				Patient: {
 					$first: "$Patient",
@@ -282,6 +320,9 @@ export const viewReportByCaseId = async (req, res) => {
 				},
 				Laboratory: {
 					$first: "$Laboratory",
+				},
+				Doctor: {
+					$first: "$Doctor.Login_name",
 				},
 				Hospitalization: 1,
 				Symptoms: 1,
@@ -443,13 +484,13 @@ export const updateReportById = async (req, res) => {
 	}
 
 	await Case.findOneAndUpdate({ _id: case_id }, Case_data, { new: true })
-		.then((data) => {
+		.then(data => {
 			return res.status(200).send({
 				status: status_code.Success,
 				Message: "Report Updated Successfully",
 			});
 		})
-		.catch((err) => {
+		.catch(err => {
 			return res.status(404).send({ status: status_code.Failed, Error: err });
 		});
 };
@@ -475,10 +516,10 @@ export const updateTreatmentByCaseId = async (req, res) => {
 	await Treatment.findOneAndUpdate({ _id: id }, Treatment_info, {
 		new: true,
 	})
-		.then((data) => {
+		.then(data => {
 			return res.status(200).send({ status: status_code.Success, Message: "Treatment updated" });
 		})
-		.catch((err) => {
+		.catch(err => {
 			return res.status(404).send({ status: status_code.Failed, Error: err });
 		});
 };
@@ -502,10 +543,10 @@ export const updateLaboratoryByCaseId = async (req, res) => {
 	}
 
 	await Laboratory.findOneAndUpdate({ _id: id }, Laboratory_info, { new: true })
-		.then((data) => {
+		.then(data => {
 			return res.status(200).send({ status: status_code.Success, Message: "Laboratory updated" });
 		})
-		.catch((err) => {
+		.catch(err => {
 			return res.status(404).send({ status: status_code.Failed, Error: err });
 		});
 };
