@@ -23,7 +23,7 @@ export const Register = async (req, res) => {
 
 	const newUser = new Doctor({
 		Login_name,
-    Role,
+		Role,
 		Password,
 		Phone_number,
 		Email,
@@ -63,11 +63,12 @@ export const Login = async (req, res) => {
 			{
 				login_name: user.Login_name,
 				Doctor_id: user._id,
-        role: user.Role
+				role: user.Role,
 			},
 			"Malaria",
 			{ expiresIn: "1d" }
 		);
+
 		return res.status(200).send({
 			status: status_code.Success,
 			Message: "Login successful",
@@ -89,4 +90,29 @@ export const GetAllUser = async (req, res) => {
 	}
 
 	return res.status(200).send({ status: status_code.Success, user_list: All_User });
+};
+
+export const GetUsersFromHospital = async (req, res) => {
+	var Doctor_id = req.query.Doctor_id;
+
+	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
+	} else {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id format is not valid",
+		});
+	}
+
+	const user_object = await Doctor.findOne({ _id: Doctor_id }, {});
+	const Hospital_id = user_object.Hospital_id;
+
+	const NormalUser = await Doctor.find(
+		{ Hospital_id: Hospital_id, Role: "NU" },
+		{ Login_name: 1, Email: 1, Phone_number: 1 }
+	).catch(err => {
+		return res.status(404).send({ status_code: status_code.Failed, Error: err });
+	});
+	
+	return res.status(200).send({ AccountManagement: NormalUser });
 };
