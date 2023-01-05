@@ -12,8 +12,8 @@ export const Register = async (req, res) => {
 	const Login_name = request.Login_name;
 	const Role = request.Role;
 	const Password = bcrypt.hashSync(request.Password, 10);
-	const Phone_number = request.Phone_Number;
-	const Email = request.email;
+	const Phone_number = request.Phone_number;
+	const Email = request.Email;
 	const Hospital_id = mongoose.Types.ObjectId(request.Hospital_id);
 
 	const exist_hospital_id = await Hospital.findOne({ _id: Hospital_id });
@@ -28,6 +28,7 @@ export const Register = async (req, res) => {
 		Phone_number,
 		Email,
 		Hospital_id,
+		Account_status: "active",
 	});
 
 	const user = await Doctor.findOne({ Email: Email });
@@ -113,6 +114,6 @@ export const GetUsersFromHospital = async (req, res) => {
 	).catch(err => {
 		return res.status(404).send({ status_code: status_code.Failed, Error: err });
 	});
-	
+
 	return res.status(200).send({ AccountManagement: NormalUser });
 };
