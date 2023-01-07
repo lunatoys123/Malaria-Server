@@ -23,7 +23,6 @@ const DoctorSchema = new mongoose.Schema({
 	createBy: String,
 	Account_status: String,
 	Email: { type: String, required: true },
-	account_status: String,
 });
 
 var DoctorModel = connection.model("Doctor", DoctorSchema, "Doctor");

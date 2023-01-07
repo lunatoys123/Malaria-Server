@@ -3,18 +3,20 @@ import { status_code } from "../Common/status_code.js";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
 
 const Doctor = Malaria.Doctor;
 const Hospital = Malaria.Hospital;
 
 export const Register = async (req, res) => {
 	const request = req.body;
-	const Login_name = request.Login_name;
-	const Role = request.Role;
-	const Password = bcrypt.hashSync(request.Password, 10);
-	const Phone_number = request.Phone_number;
-	const Email = request.Email;
-	const Hospital_id = mongoose.Types.ObjectId(request.Hospital_id);
+
+	const Login_name = request.user.Login_name;
+	const Role = request.user.Role;
+	const Password = bcrypt.hashSync(request.user.Password, 10);
+	const Phone_number = request.user.Phone_number;
+	const Email = request.user.Email;
+	const Hospital_id = mongoose.Types.ObjectId(request.user.Hospital_id);
 
 	const exist_hospital_id = await Hospital.findOne({ _id: Hospital_id });
 	if (exist_hospital_id == null) {
@@ -34,20 +36,62 @@ export const Register = async (req, res) => {
 	const user = await Doctor.findOne({ Email: Email });
 
 	if (user) {
-		return res.status(400).send({ status: status_code.Failed, Message: "User exists already" });
+		console.log("User exists already");
+		return res.status(400).send({ status: status_code.Failed, Error: "User exists already" });
 	}
 
-	await newUser
-		.save()
-		.then(data => {
-			return res.status(200).send({
-				status: status_code.Success,
-				Message: "Add user successfully",
-			});
-		})
-		.catch(err => {
-			return res.status(400).send({ status: status_code.Failed, error: err.message });
+	// await newUser
+	// 	.save()
+	// 	.then(data => {
+	// 		return res.status(200).send({
+	// 			status: status_code.Success,
+	// 			Message: "Add user successfully",
+	// 		});
+	// 	})
+	// 	.catch(err => {
+	// 		return res.status(400).send({ status: status_code.Failed, error: err.message });
+	// 	});
+
+	var SuccessRegister = await newUser.save().catch(err => {
+		console.log(err);
+		return res.status(400).send({ status: status_code.Failed, Error: err.message });
+	});
+
+	//console.log(SuccessRegister);
+
+	if (SuccessRegister) {
+		let transporter = nodemailer.createTransport({
+			service: "gmail",
+			host: "smtp.gmail.com",
+			auth: {
+				user: "laukintung322@gmail.com", // generated ethereal user
+				pass: "odyhoziqkunvjkcj", // generated ethereal password
+			},
 		});
+
+		const email = {
+			from: '"Malaria-Admin" <laukintung322@gmail.com>"',
+			to: "laukintung322@gmail.com",
+			subject: "validation on creating Account",
+			html: `<html>
+					<body>
+						<p>Dear ${SuccessRegister.Login_name}</p>
+						<p>if you received this email, this mean Malaria app have add you as a user. Please open Malaria app to Login</p>
+					</body>
+				  </html>`,
+		};
+
+		let info = await transporter.sendMail(email).catch(err => {
+			console.log(err);
+		});
+
+		//console.log(info.messageId);
+
+		return res.status(200).send({
+			status: status_code.Success,
+			Message: "Add user successfully",
+		});
+	}
 };
 
 export const Login = async (req, res) => {
@@ -65,6 +109,7 @@ export const Login = async (req, res) => {
 				login_name: user.Login_name,
 				Doctor_id: user._id,
 				role: user.Role,
+				Hospital_id: user.Hospital_id,
 			},
 			"Malaria",
 			{ expiresIn: "1d" }
@@ -110,7 +155,7 @@ export const GetUsersFromHospital = async (req, res) => {
 
 	const NormalUser = await Doctor.find(
 		{ Hospital_id: Hospital_id, Role: "NU" },
-		{ Login_name: 1, Email: 1, Phone_number: 1 }
+		{ Login_name: 1, Email: 1, Phone_number: 1, Account_status: 1 }
 	).catch(err => {
 		return res.status(404).send({ status_code: status_code.Failed, Error: err });
 	});
