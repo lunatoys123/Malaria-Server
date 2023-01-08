@@ -1,19 +1,36 @@
 import Malaria from "../Model/Malaria.js";
-import { status_code } from "../Common/status_code.js";
+import { Account_status, status_code } from "../Common/status_code.js";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import * as dotenv from "dotenv";
+import { Normal_User_Role } from "../Common/role.js";
 
 const Doctor = Malaria.Doctor;
 const Hospital = Malaria.Hospital;
+
+dotenv.config();
+const mail_pass = process.env.mail_pass;
+
+function generateRandomPassword(length) {
+	const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	let password = "";
+
+	for (let i = 0; i < length; i++) {
+		var randomNumber = Math.floor(Math.random() * chars.length);
+		password += chars.substring(randomNumber, randomNumber + 1);
+	}
+	return password;
+}
 
 export const Register = async (req, res) => {
 	const request = req.body;
 
 	const Login_name = request.user.Login_name;
 	const Role = request.user.Role;
-	const Password = bcrypt.hashSync(request.user.Password, 10);
+	const Password = generateRandomPassword(8);
+	const hashPassword = bcrypt.hashSync(Password, 10);
 	const Phone_number = request.user.Phone_number;
 	const Email = request.user.Email;
 	const Hospital_id = mongoose.Types.ObjectId(request.user.Hospital_id);
@@ -26,31 +43,19 @@ export const Register = async (req, res) => {
 	const newUser = new Doctor({
 		Login_name,
 		Role,
-		Password,
+		Password: hashPassword,
 		Phone_number,
 		Email,
 		Hospital_id,
-		Account_status: "active",
+		Account_status: Account_status.Pending,
 	});
 
 	const user = await Doctor.findOne({ Email: Email });
 
 	if (user) {
-		console.log("User exists already");
+		//console.log("User exists already");
 		return res.status(400).send({ status: status_code.Failed, Error: "User exists already" });
 	}
-
-	// await newUser
-	// 	.save()
-	// 	.then(data => {
-	// 		return res.status(200).send({
-	// 			status: status_code.Success,
-	// 			Message: "Add user successfully",
-	// 		});
-	// 	})
-	// 	.catch(err => {
-	// 		return res.status(400).send({ status: status_code.Failed, error: err.message });
-	// 	});
 
 	var SuccessRegister = await newUser.save().catch(err => {
 		console.log(err);
@@ -65,7 +70,7 @@ export const Register = async (req, res) => {
 			host: "smtp.gmail.com",
 			auth: {
 				user: "laukintung322@gmail.com", // generated ethereal user
-				pass: "odyhoziqkunvjkcj", // generated ethereal password
+				pass: mail_pass, // generated ethereal password
 			},
 		});
 
@@ -76,7 +81,10 @@ export const Register = async (req, res) => {
 			html: `<html>
 					<body>
 						<p>Dear ${SuccessRegister.Login_name}</p>
-						<p>if you received this email, this mean Malaria app have add you as a user. Please open Malaria app to Login</p>
+						<p>if you received this email, 
+						this mean Malaria app have add you as a user.
+						Please open Malaria app and use the following one-time password to Login</p>
+						<p>One time Password: ${Password}</p>
 					</body>
 				  </html>`,
 		};
@@ -86,7 +94,6 @@ export const Register = async (req, res) => {
 		});
 
 		//console.log(info.messageId);
-
 		return res.status(200).send({
 			status: status_code.Success,
 			Message: "Add user successfully",
@@ -110,6 +117,7 @@ export const Login = async (req, res) => {
 				Doctor_id: user._id,
 				role: user.Role,
 				Hospital_id: user.Hospital_id,
+				Account_status: user.Account_status,
 			},
 			"Malaria",
 			{ expiresIn: "1d" }
@@ -154,11 +162,38 @@ export const GetUsersFromHospital = async (req, res) => {
 	const Hospital_id = user_object.Hospital_id;
 
 	const NormalUser = await Doctor.find(
-		{ Hospital_id: Hospital_id, Role: "NU" },
+		{ Hospital_id: Hospital_id, Role: Normal_User_Role },
 		{ Login_name: 1, Email: 1, Phone_number: 1, Account_status: 1 }
 	).catch(err => {
 		return res.status(404).send({ status_code: status_code.Failed, Error: err });
 	});
 
 	return res.status(200).send({ AccountManagement: NormalUser });
+};
+
+export const ResetPassword = async (req, res) => {
+	var Doctor_id = req.body.Doctor_id;
+	const Password = bcrypt.hashSync(req.body.Password, 10);
+
+	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
+	} else {
+		return res
+			.status(400)
+			.send({ status_code: status_code.Failed, Error: "Doctor id is not valid" });
+	}
+
+	const Doctor_Object = await Doctor.findOneAndUpdate(
+		{ _id: Doctor_id },
+		{ Password: Password, Account_status: Account_status.Active },
+		{ new: true }
+	).catch(err => {
+		return res.status(400).send({ status_code: status_code.Failed, Error: err });
+	});
+
+	if (Doctor_Object) {
+		return res
+			.status(200)
+			.send({ status_code: status_code.Success, Message: "Reset Password Successful" });
+	}
 };

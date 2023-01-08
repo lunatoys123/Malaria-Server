@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
+import * as dotenv from "dotenv";
+
+dotenv.config();
+const DBURL = process.env.DBURL;
 
 var connection = mongoose.createConnection(
-	"mongodb+srv://lunatoys:lunatoys@cluster0.efyxi.mongodb.net/Malaria?retryWrites=true&w=majority",
+	DBURL,
 	{
 		useNewUrlParser: true,
 		useUnifiedTopology: true,
