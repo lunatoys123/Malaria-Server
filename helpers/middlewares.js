@@ -4,7 +4,6 @@ import Malaria from "../Model/Malaria.js";
 
 const Doctor = Malaria.Doctor;
 export const checkAdminRight = async (req, res, next) => {
-	console.log(req.method);
 	var Doctor_id = "";
 	if (req.method == "POST") {
 		Doctor_id = req.body.Doctor_id;

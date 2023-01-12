@@ -146,7 +146,7 @@ export const GetAllUser = async (req, res) => {
 	return res.status(200).send({ status: status_code.Success, user_list: All_User });
 };
 
-export const GetUsersFromHospital = async (req, res) => {
+export const GetNormalUsersFromHospital = async (req, res) => {
 	var Doctor_id = req.query.Doctor_id;
 
 	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
@@ -196,4 +196,31 @@ export const ResetPassword = async (req, res) => {
 			.status(200)
 			.send({ status_code: status_code.Success, Message: "Reset Password Successful" });
 	}
+};
+
+export const GetAllUserFromHospital = async (req, res) => {
+	var Doctor_id = req.query.Doctor_Id;
+	console.log(Doctor_id);
+
+	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
+	} else {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id format is not valid",
+		});
+	}
+
+	const user_object = await Doctor.findOne({ _id: Doctor_id }, {});
+	const Hospital_id = user_object.Hospital_id;
+
+	var UserObject = await Doctor.find(
+		{ Hospital_id: Hospital_id, _id: { $ne: Doctor_id } },
+		{ Login_name: 1, Email: 1, Phone_number: 1, Account_status: 1 }
+	).catch(err => {
+		return res.status(404).send({ status: status_code.Failed, Error: err });
+	});
+
+	UserObject = UserObject.map(d => ({ id: d._id, item: d.Login_name }));
+	return res.status(200).send(UserObject);
 };

@@ -7,6 +7,11 @@ router.post("/register", checkAdminRight, userController.Register);
 router.post("/login", userController.Login);
 router.post("/ResetPassword", userController.ResetPassword);
 router.get("/all", userController.GetAllUser);
-router.get("/GetUserFromHospital", checkAdminRight, userController.GetUsersFromHospital);
+router.get(
+	"/GetNormalUsersFromHospital",
+	checkAdminRight,
+	userController.GetNormalUsersFromHospital
+);
+router.get("/GetAllUserFromHospital", userController.GetAllUserFromHospital);
 
 export default router;

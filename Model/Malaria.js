@@ -51,7 +51,7 @@ const MessageSchema = new mongoose.Schema({
 	Message_title: String,
 	Message_Content: String,
 	status: String,
-	dtCreated: Date,
+	dtCreated: { type: Date, default: new Date() },
 	createBy: String,
 });
 
