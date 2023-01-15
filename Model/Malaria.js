@@ -24,7 +24,7 @@ const DoctorSchema = new mongoose.Schema({
 	Hospital_id: { type: mongoose.SchemaTypes.ObjectId, required: true },
 	Password: { type: String, required: true },
 	Phone_number: { type: String, required: true },
-	createBy: String,
+	createdBy: String,
 	Account_status: String,
 	Email: { type: String, required: true },
 });
@@ -41,7 +41,7 @@ const HosptialSchema = new mongoose.Schema({
 	},
 	Phone_number: String,
 	Region: String,
-	createBy: String,
+	createdBy: String,
 });
 
 var HospitalModel = connection.model("Hosptial", HosptialSchema, "Hospital");
@@ -52,7 +52,7 @@ const MessageSchema = new mongoose.Schema({
 	Message_Content: String,
 	status: String,
 	dtCreated: { type: Date, default: new Date() },
-	createBy: String,
+	createdBy: String,
 });
 
 var MessageModel = connection.model("Message", MessageSchema, "Message");
