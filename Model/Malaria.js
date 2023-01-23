@@ -18,6 +18,15 @@ var connection = mongoose.createConnection(
 	}
 );
 
+const AuditSchema = new mongoose.Schema({
+	Doctor_id: mongoose.SchemaTypes.ObjectId,
+	Audit_Code: String,
+	Activity: String,
+	dtCreated: { type: Date, default: new Date() },
+});
+
+var AuditModel = connection.model("Audit_Log", AuditSchema, "Audit_Log");
+
 const DoctorSchema = new mongoose.Schema({
 	Login_name: { type: String, required: true },
 	Role: String,
@@ -217,6 +226,7 @@ const caseSchema = new mongoose.Schema({
 var caseModel = connection.model("Case", caseSchema, "Case");
 
 export default {
+	Audit: AuditModel,
 	Doctor: DoctorModel,
 	Hospital: HospitalModel,
 	Message: MessageModel,

@@ -7,6 +7,7 @@ const Case = Malaria.case;
 const Laboratory = Malaria.Labortary;
 const Treatment = Malaria.Treatment;
 const Doctor = Malaria.Doctor;
+const Audit = Malaria.Audit;
 
 export const AddCase = async (req, res) => {
 	const request = req.body;
@@ -52,14 +53,27 @@ export const AddCase = async (req, res) => {
 
 		var newCase = new Case(case_data);
 
-		await newCase
-			.save()
-			.then(data => {
-				return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
-			})
-			.catch(err => {
-				return res.status(400).send({ status: status_code.Failed, Error: err.message });
+		const case_Object = await newCase.save().catch(err => {
+			return res.status(400).send({ status: status_code.Failed, Error: err.message });
+		});
+
+		if (case_Object) {
+			const newAudit = new Audit({
+				Doctor_id: mongoose.Types.ObjectId(user.Doctor_id),
+				Activity: `Add Malaria Reports: ${Patient_id}`,
+				Audit_Code: "Malaria_Report_Add",
 			});
+
+			await newAudit
+				.save()
+				.then(data => {
+					console.log(data);
+				})
+				.catch(err => {
+					console.log(err);
+				});
+			return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
+		}
 	} else if (mode === Operation_Mode.createWithPatientId) {
 		if (!case_data) {
 			return res.status(400).send({
@@ -76,14 +90,28 @@ export const AddCase = async (req, res) => {
 
 		var newCase = new Case(case_data);
 
-		await newCase
-			.save()
-			.then(data => {
-				return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
-			})
-			.catch(err => {
-				return res.status(400).send({ status: status_code.Failed, Error: err.message });
+		const case_object = await newCase.save().catch(err => {
+			return res.status(400).send({ status: status_code.Failed, Error: err.message });
+		});
+
+		if (case_object) {
+			const newAudit = new Audit({
+				Doctor_id: mongoose.Types.ObjectId(user.Doctor_id),
+				Activity: `Add Malaria Reports: ${case_data.Patient_id}`,
+				Audit_Code: "Malaria_Report_Created",
 			});
+
+			await newAudit
+				.save()
+				.then(data => {
+					console.log(data);
+				})
+				.catch(err => {
+					console.log(err);
+				});
+
+			return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
+		}
 	}
 };
 
@@ -101,8 +129,8 @@ export const addLaboratory = async (req, res) => {
 		});
 	}
 
-	const case_id_exist = await Case.findOne({ _id: case_id });
-	if (!case_id_exist) {
+	const case_Object = await Case.findOne({ _id: case_id }, { Doctor_id: 1, _id: 0 });
+	if (!case_Object) {
 		return res.status(404).send({ status: status_code.Failed, Error: "case id does not exist" });
 	}
 
@@ -113,17 +141,30 @@ export const addLaboratory = async (req, res) => {
 		RDT,
 	});
 
-	await newLaboratory
-		.save()
-		.then(data => {
-			return res.status(200).send({
-				status: status_code.Success,
-				Message: "Laboratory record establish",
-			});
-		})
-		.catch(err => {
-			return res.status(404).send({ status: status_code.Failed, Error: err.message });
+	const Laboratory_Object = await newLaboratory.save().catch(err => {
+		return res.status(404).send({ status: status_code.Failed, Error: err.message });
+	});
+
+	if (Laboratory_Object) {
+		const newAudit = new Audit({
+			Doctor_id: case_Object.Doctor_id,
+			Activity: `Add Laboratory on Case: ${case_id}`,
+			Audit_Code: "Malaria_Laboratory_Created",
 		});
+		await newAudit
+			.save()
+			.then(data => {
+				console.log(data);
+			})
+			.catch(err => {
+				console.log(err);
+			});
+
+		return res.status(200).send({
+			status: status_code.Success,
+			Message: "Laboratory record establish",
+		});
+	}
 };
 
 export const addTreatment = async (req, res) => {
@@ -165,20 +206,32 @@ export const addTreatment = async (req, res) => {
 		dtUpdated: Date.now(),
 	});
 
-	const case_id_exist = await Case.findOne({ _id: case_id });
+	const case_Object = await Case.findOne({ _id: case_id }, { Doctor_id: 1, _id: 0 });
 
-	if (!case_id_exist) {
+	if (!case_Object) {
 		return res.status(404).send({ status: status_code.Failed, Error: "case id does not exist" });
 	}
 
-	await newTreatment
-		.save()
-		.then(data => {
-			return res.status(200).send({ status: status_code.Success, Message: "Treatment establish" });
-		})
-		.catch(err => {
-			return res.status(404).send({ status: status_code.Failed, Error: err.message });
+	const Treatment_Object = await newTreatment.save().catch(err => {
+		return res.status(404).send({ status: status_code.Failed, Error: err.message });
+	});
+
+	if (Treatment_Object) {
+		const newAudit = new Audit({
+			Doctor_id: case_Object.Doctor_id,
+			Activity: `Treatment Report created for Case: ${case_id}`,
+			Audit_Code: "Malaria_Treatment_Created",
 		});
+		await newAudit
+			.save()
+			.then(data => {
+				console.log(data);
+			})
+			.catch(err => {
+				console.log(err);
+			});
+		return res.status(200).send({ status: status_code.Success, Message: "Treatment establish" });
+	}
 };
 
 export const viewReport = async (req, res) => {
@@ -483,16 +536,30 @@ export const updateReportById = async (req, res) => {
 		});
 	}
 
-	await Case.findOneAndUpdate({ _id: case_id }, Case_data, { new: true })
-		.then(data => {
-			return res.status(200).send({
-				status: status_code.Success,
-				Message: "Report Updated Successfully",
-			});
-		})
-		.catch(err => {
+	const Case_Object = await Case.findOneAndUpdate({ _id: case_id }, Case_data, { new: true }).catch(
+		err => {
 			return res.status(404).send({ status: status_code.Failed, Error: err });
+		}
+	);
+	if (Case_Object) {
+		const newAudit = new Audit({
+			Doctor_id: Case_Object.Doctor_id,
+			Activity: `Update Case Report : ${case_id}`,
+			Audit_Code: "Malaria_Case_Update",
 		});
+		await newAudit
+			.save()
+			.then(data => {
+				console.log(data);
+			})
+			.catch(err => {
+				console.log(err);
+			});
+		return res.status(200).send({
+			status: status_code.Success,
+			Message: "Report Updated Successfully",
+		});
+	}
 };
 
 export const updateTreatmentByCaseId = async (req, res) => {
@@ -542,11 +609,29 @@ export const updateLaboratoryByCaseId = async (req, res) => {
 		});
 	}
 
-	await Laboratory.findOneAndUpdate({ _id: id }, Laboratory_info, { new: true })
-		.then(data => {
-			return res.status(200).send({ status: status_code.Success, Message: "Laboratory updated" });
-		})
-		.catch(err => {
-			return res.status(404).send({ status: status_code.Failed, Error: err });
+	const case_Object = await Case.findOne({ case_id: id }, { Doctor_id: 1, _id: 0 });
+
+	const Laboratory_Object = await Laboratory.findOneAndUpdate({ _id: id }, Laboratory_info, {
+		new: true,
+	}).catch(err => {
+		return res.status(404).send({ status: status_code.Failed, Error: err });
+	});
+
+	if (Laboratory_Object) {
+		const newAudit = new Audit({
+			Doctor_id: case_Object.Doctor_id,
+			Activity: `Updated Laboratory Report on Case: ${id}`,
+			Audit_Code: "Malaria_Laboratory_Update",
 		});
+
+		await newAudit
+			.save()
+			.then(data => {
+				console.log(data);
+			})
+			.catch(err => {
+				console.log(err);
+			});
+		return res.status(200).send({ status: status_code.Success, Message: "Laboratory updated" });
+	}
 };

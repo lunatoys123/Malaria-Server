@@ -9,6 +9,7 @@ import { Normal_User_Role } from "../Common/role.js";
 
 const Doctor = Malaria.Doctor;
 const Hospital = Malaria.Hospital;
+const Audit = Malaria.Audit;
 
 dotenv.config();
 const mail_pass = process.env.mail_pass;
@@ -122,7 +123,16 @@ export const Login = async (req, res) => {
 			"Malaria",
 			{ expiresIn: "1d" }
 		);
+		const newAudit = new Audit({
+			Doctor_id: user._id,
+			Activity: `Doctor ${user._id} Login`,
+			Audit_Code: "Malaria_User_Login",
+		});
 
+		await newAudit
+			.save()
+			.then(data => console.log(data))
+			.catch(err => console.log(err));
 		return res.status(200).send({
 			status: status_code.Success,
 			Message: "Login successful",
