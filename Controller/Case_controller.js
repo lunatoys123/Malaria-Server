@@ -566,6 +566,8 @@ export const updateTreatmentByCaseId = async (req, res) => {
 	const id = req.body.id;
 	const Treatment_info = req.body.Treatment;
 
+	console.log(id);
+
 	if (!mongoose.Types.ObjectId.isValid(id)) {
 		return res.status(404).send({
 			status: status_code.Failed,
@@ -580,15 +582,33 @@ export const updateTreatmentByCaseId = async (req, res) => {
 		});
 	}
 
-	await Treatment.findOneAndUpdate({ _id: id }, Treatment_info, {
+	const Treatment_Object = await Treatment.findOneAndUpdate({ _id: id }, Treatment_info, {
 		new: true,
-	})
-		.then(data => {
-			return res.status(200).send({ status: status_code.Success, Message: "Treatment updated" });
-		})
-		.catch(err => {
-			return res.status(404).send({ status: status_code.Failed, Error: err });
+	}).catch(err => {
+		return res.status(404).send({ status: status_code.Failed, Error: err });
+	});
+
+	if (Treatment_Object) {
+		const case_id = Treatment_Object.case_id;
+
+		const case_Object = await Case.findOne({ case_id: case_id }, { Doctor_id: 1, _id: 0 });
+
+		const newAudit = new Audit({
+			Doctor_id: case_Object.Doctor_id,
+			Activity: `Updated Treatment Report on Case: ${id}`,
+			Audit_Code: "Malaria_Treatment_Update",
 		});
+
+		await newAudit
+			.save()
+			.then(data => {
+				console.log(data);
+			})
+			.catch(err => {
+				console.log(err);
+			});
+		return res.status(200).send({ status: status_code.Success, Message: "Treatment updated" });
+	}
 };
 
 export const updateLaboratoryByCaseId = async (req, res) => {

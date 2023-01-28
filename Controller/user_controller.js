@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import * as dotenv from "dotenv";
 import { Normal_User_Role } from "../Common/role.js";
+import moment from "moment";
 
 const Doctor = Malaria.Doctor;
 const Hospital = Malaria.Hospital;
@@ -210,7 +211,6 @@ export const ResetPassword = async (req, res) => {
 
 export const GetAllUserFromHospital = async (req, res) => {
 	var Doctor_id = req.query.Doctor_Id;
-	console.log(Doctor_id);
 
 	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
@@ -233,4 +233,32 @@ export const GetAllUserFromHospital = async (req, res) => {
 
 	UserObject = UserObject.map(d => ({ id: d._id, item: d.Login_name }));
 	return res.status(200).send(UserObject);
+};
+
+export const GetAuditFromDoctorId = async (req, res) => {
+	var Doctor_id = req.query.Doctor_id;
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id format is not valid",
+		});
+	} else {
+		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
+	}
+
+	var Doctor_Object = await Audit.find(
+		{ Doctor_id: Doctor_id },
+		{ Audit_Code: 1, Activity: 1, dtCreated: 1, _id: 0 }
+	).sort([["dtCreated", 1]]);
+
+	Doctor_Object = Doctor_Object.map(d => {
+		return {
+			Audit_Code: d.Audit_Code,
+			Activity: d.Activity,
+			dtCreated: moment(d.dtCreated).format("YYYY-MM-DD hh:mm").toString(),
+		};
+	});
+
+	return res.status(200).send(Doctor_Object);
 };

@@ -28,31 +28,52 @@ export const WHO_Data = async (req, res) => {
 	const selectcountry = req.query.selectcountry;
 
 	var Indicator_Key = getIndicator_key(option);
-	console.log(Indicator_Key);
 	if (Indicator_Key) {
-		var dataObject = await WHO.find(
-			{ Indication_code: Indicator_Key, country_code: selectcountry },
-			{ data: 1, _id: 0 }
-		);
+		var dataObject = await WHO.aggregate([
+			{
+				$match: {
+					Indication_code: Indicator_Key,
+					country_code: selectcountry,
+				},
+			},
+			{
+				$project: {
+					data: 1,
+					_id: 0,
+				},
+			},
+			{
+				$unwind: {
+					path: "$data",
+				},
+			},
+			{
+				$sort: {
+					"data.Year": 1,
+				},
+			},
+			{
+				$project: {
+					Year: "$data.Year",
+					low: "$data.low",
+					High: "$data.High",
+					value: "$data.value",
+				},
+			},
+		]);
 
-		dataObject = dataObject
-			.map(d => {
-				const data = d.data;
-				const nested = data.map(n => {
-					return {
-						value: n.value,
-						High: n.High,
-						Low: n.Low,
-						Year: n.Year,
-					};
-				});
-				return nested;
-			})
-			.reduce(function (prev, next) {
-				return prev.concat(next);
-			});
+		const chunk = 5;
+		dataObject = dataObject.reduce((resultArray, item, index) => {
+			const chunkIndex = Math.floor(index / chunk);
 
-		//console.log(dataObject);
+			if (!resultArray[chunkIndex]) {
+				resultArray[chunkIndex] = [];
+			}
+
+			resultArray[chunkIndex].push(item);
+
+			return resultArray;
+		}, []);
 		return res.status(200).send({ status: status_code.Success, data: dataObject });
 	} else {
 		return res.status(401).send({ status: status_code.Failed, Message: "No Indicator code" });

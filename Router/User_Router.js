@@ -13,5 +13,6 @@ router.get(
 	userController.GetNormalUsersFromHospital
 );
 router.get("/GetAllUserFromHospital", userController.GetAllUserFromHospital);
+router.get("/GetAuditFromDoctorId", userController.GetAuditFromDoctorId);
 
 export default router;
