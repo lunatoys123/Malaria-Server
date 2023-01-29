@@ -66,9 +66,6 @@ export const AddCase = async (req, res) => {
 
 			await newAudit
 				.save()
-				.then(data => {
-					console.log(data);
-				})
 				.catch(err => {
 					console.log(err);
 				});
@@ -103,9 +100,6 @@ export const AddCase = async (req, res) => {
 
 			await newAudit
 				.save()
-				.then(data => {
-					console.log(data);
-				})
 				.catch(err => {
 					console.log(err);
 				});
@@ -153,9 +147,6 @@ export const addLaboratory = async (req, res) => {
 		});
 		await newAudit
 			.save()
-			.then(data => {
-				console.log(data);
-			})
 			.catch(err => {
 				console.log(err);
 			});
@@ -224,9 +215,6 @@ export const addTreatment = async (req, res) => {
 		});
 		await newAudit
 			.save()
-			.then(data => {
-				console.log(data);
-			})
 			.catch(err => {
 				console.log(err);
 			});
@@ -549,9 +537,6 @@ export const updateReportById = async (req, res) => {
 		});
 		await newAudit
 			.save()
-			.then(data => {
-				console.log(data);
-			})
 			.catch(err => {
 				console.log(err);
 			});
@@ -566,7 +551,7 @@ export const updateTreatmentByCaseId = async (req, res) => {
 	const id = req.body.id;
 	const Treatment_info = req.body.Treatment;
 
-	console.log(id);
+	//console.log(id);
 
 	if (!mongoose.Types.ObjectId.isValid(id)) {
 		return res.status(404).send({
@@ -601,9 +586,6 @@ export const updateTreatmentByCaseId = async (req, res) => {
 
 		await newAudit
 			.save()
-			.then(data => {
-				console.log(data);
-			})
 			.catch(err => {
 				console.log(err);
 			});
@@ -646,9 +628,6 @@ export const updateLaboratoryByCaseId = async (req, res) => {
 
 		await newAudit
 			.save()
-			.then(data => {
-				console.log(data);
-			})
 			.catch(err => {
 				console.log(err);
 			});

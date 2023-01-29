@@ -108,7 +108,12 @@ export const Login = async (req, res) => {
 	const Email = request.email;
 	const Password = request.Password;
 
-	const user = await Doctor.findOne({ Email: Email });
+	const user = await Doctor.findOne({ Email: Email }).select({
+		Login_name: 1,
+		Role: 1,
+		Account_status: 1,
+		Password: 1
+	});
 	if (!user) {
 		return res.status(400).send({ status: status_code.Failed, Message: "User Not exist" });
 	}
@@ -130,10 +135,8 @@ export const Login = async (req, res) => {
 			Audit_Code: "Malaria_User_Login",
 		});
 
-		await newAudit
-			.save()
-			.then(data => console.log(data))
-			.catch(err => console.log(err));
+		await newAudit.save().catch(err => console.log(err));
+		
 		return res.status(200).send({
 			status: status_code.Success,
 			Message: "Login successful",
