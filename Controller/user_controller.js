@@ -7,6 +7,10 @@ import nodemailer from "nodemailer";
 import * as dotenv from "dotenv";
 import { Normal_User_Role } from "../Common/role.js";
 import moment from "moment";
+import { createClient } from "redis";
+
+const client = new createClient();
+client.connect().then(() => console.log("Connected to Redis server"));
 
 const Doctor = Malaria.Doctor;
 const Hospital = Malaria.Hospital;
@@ -15,8 +19,11 @@ const Audit = Malaria.Audit;
 dotenv.config();
 const mail_pass = process.env.mail_pass;
 
-function generateRandomPassword(length) {
-	const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+function generateRandomPassword(
+	length,
+	chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+) {
+	//const chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	let password = "";
 
 	for (let i = 0; i < length; i++) {
@@ -78,6 +85,7 @@ export const Register = async (req, res) => {
 
 		const email = {
 			from: '"Malaria-Admin" <laukintung322@gmail.com>"',
+			//should change to Doctor email when implemented
 			to: "laukintung322@gmail.com",
 			subject: "validation on creating Account",
 			html: `<html>
@@ -112,7 +120,7 @@ export const Login = async (req, res) => {
 		Login_name: 1,
 		Role: 1,
 		Account_status: 1,
-		Password: 1
+		Password: 1,
 	});
 	if (!user) {
 		return res.status(400).send({ status: status_code.Failed, Message: "User Not exist" });
@@ -136,7 +144,7 @@ export const Login = async (req, res) => {
 		});
 
 		await newAudit.save().catch(err => console.log(err));
-		
+
 		return res.status(200).send({
 			status: status_code.Success,
 			Message: "Login successful",
@@ -264,4 +272,75 @@ export const GetAuditFromDoctorId = async (req, res) => {
 	});
 
 	return res.status(200).send(Doctor_Object);
+};
+
+export const ForgetordProcess = async (req, res) => {
+	const Email = req.body.Email;
+
+	const Doctor_Object = await Doctor.findOneAndUpdate(
+		{ Email: Email },
+		{ Account_status: Account_status.Blocked },
+		{ new: true }
+	).catch(err => {
+		return res.status(400).send({
+			status: status_code.Failed,
+			Message: err,
+		});
+	});
+
+	if (!Doctor_Object) {
+		return res.status(400).send({
+			status: status_code.Failed,
+			Message: "User Email is not exists in Malaria App Database. Please try again",
+		});
+	}
+
+	const Authentication_Code = generateRandomPassword(6, "0123456789");
+	//console.log("Authentication Code: ", Authentication_Code);
+	client.setEx(`${Email}:Auth`, 180, Authentication_Code);
+
+	let transporter = nodemailer.createTransport({
+		service: "gmail",
+		host: "smtp.gmail.com",
+		auth: {
+			user: "laukintung322@gmail.com", // generated ethereal user
+			pass: mail_pass, // generated ethereal password
+		},
+	});
+
+	const email = {
+		from: '"Malaria-Admin" <laukintung322@gmail.com>"',
+		//should change to Doctor email when implemented
+		to: "laukintung322@gmail.com",
+		subject: "Recovery Process",
+		html: `<html>
+				<body>
+					<p>Dear User:</p>
+					<p>Malaria System have receive your Requests to receive Password, Please enter the following Authentication code to continue the Forget Password ProcessAuthentication Code</p>
+					<p><b>The Authentication code only exists for 3 minutes, Please enter the Authentication code as soon as possible. Otherwise, you need to restart the Recovery process</b></p>
+					<p>Authentication Code: ${Authentication_Code}</p>
+				</body>
+			  </html>`,
+	};
+
+	let info = await transporter.sendMail(email).catch(err => {
+		console.log(err);
+	});
+
+	return res.status(200).send({ status: status_code.Success });
+};
+
+export const RecoveryAuthentication = async (req, res) => {
+	const Authentication_Code = req.body.AuthenticationCode;
+	const Email = req.body.Email;
+
+	const value = await client.get(`${Email}:Auth`).catch(err => console.log(err));
+
+	if (value !== Authentication_Code) {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Message: "Wrong Authentication Code" });
+	}
+
+	return res.status(200).send({ status: status_code.Success });
 };

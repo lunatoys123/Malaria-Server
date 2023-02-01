@@ -5,7 +5,11 @@ import { checkAdminRight } from "../helpers/middlewares.js";
 const router = express.Router();
 router.post("/register", checkAdminRight, userController.Register);
 router.post("/login", userController.Login);
+//For New User First Login
 router.post("/ResetPassword", userController.ResetPassword);
+//For Exists User that forget Password
+router.post("/ForgetPasswordProcess", userController.ForgetordProcess);
+router.post("/Recovery_Authentication", userController.RecoveryAuthentication);
 router.get("/all", userController.GetAllUser);
 router.get(
 	"/GetNormalUsersFromHospital",
@@ -13,6 +17,6 @@ router.get(
 	userController.GetNormalUsersFromHospital
 );
 router.get("/GetAllUserFromHospital", userController.GetAllUserFromHospital);
-router.get("/GetAuditFromDoctorId", userController.GetAuditFromDoctorId);
+router.get("/GetAuditFromDoctorId", checkAdminRight, userController.GetAuditFromDoctorId);
 
 export default router;
