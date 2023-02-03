@@ -50,3 +50,9 @@ export const Message_status = {
 	read: "read",
 	unread: "unread",
 };
+
+
+export const User_Status = {
+	newUser: "NewUser",
+	reset: "reset"
+}

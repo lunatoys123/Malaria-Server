@@ -1,5 +1,5 @@
 import Malaria from "../Model/Malaria.js";
-import { Account_status, status_code } from "../Common/status_code.js";
+import { Account_status, status_code, User_Status } from "../Common/status_code.js";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
@@ -187,36 +187,54 @@ export const GetNormalUsersFromHospital = async (req, res) => {
 		{ Hospital_id: Hospital_id, Role: Normal_User_Role },
 		{ Login_name: 1, Email: 1, Phone_number: 1, Account_status: 1 }
 	).catch(err => {
-		return res.status(404).send({ status_code: status_code.Failed, Error: err });
+		return res.status(404).send({ status: status_code.Failed, Error: err });
 	});
 
 	return res.status(200).send({ AccountManagement: NormalUser });
 };
 
 export const ResetPassword = async (req, res) => {
-	var Doctor_id = req.body.Doctor_id;
-	const Password = bcrypt.hashSync(req.body.Password, 10);
+	const mode = req.body.mode;
+	if (mode === User_Status.newUser) {
+		var Doctor_id = req.body.Recovery_Info;
+		const Password = bcrypt.hashSync(req.body.Password, 10);
 
-	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
-		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
-	} else {
-		return res
-			.status(400)
-			.send({ status_code: status_code.Failed, Error: "Doctor id is not valid" });
-	}
+		if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
+			Doctor_id = mongoose.Types.ObjectId(Doctor_id);
+		} else {
+			return res.status(400).send({ status: status_code.Failed, Error: "Doctor id is not valid" });
+		}
 
-	const Doctor_Object = await Doctor.findOneAndUpdate(
-		{ _id: Doctor_id },
-		{ Password: Password, Account_status: Account_status.Active },
-		{ new: true }
-	).catch(err => {
-		return res.status(400).send({ status_code: status_code.Failed, Error: err });
-	});
+		const Doctor_Object = await Doctor.findOneAndUpdate(
+			{ _id: Doctor_id },
+			{ Password: Password, Account_status: Account_status.Active },
+			{ new: true }
+		).catch(err => {
+			return res.status(400).send({ status: status_code.Failed, Error: err });
+		});
 
-	if (Doctor_Object) {
-		return res
-			.status(200)
-			.send({ status_code: status_code.Success, Message: "Reset Password Successful" });
+		if (Doctor_Object) {
+			return res
+				.status(200)
+				.send({ status: status_code.Success, Message: "Reset Password Successful" });
+		}
+	} else if (mode === User_Status.reset) {
+		var Email = req.body.Recovery_Info;
+		const Password = bcrypt.hashSync(req.body.Password, 10);
+
+		const Doctor_Object = await Doctor.findOneAndUpdate(
+			{ Email: Email },
+			{ Password: Password, Account_status: Account_status.Active },
+			{ new: true }
+		).catch(err => {
+			return res.status(400).send({ status: status_code.Failed, Message: err });
+		});
+
+		if (Doctor_Object) {
+			return res
+				.status(200)
+				.send({ status: status_code.Success, Message: "Reset Password Successful" });
+		}
 	}
 };
 
@@ -277,11 +295,7 @@ export const GetAuditFromDoctorId = async (req, res) => {
 export const ForgetordProcess = async (req, res) => {
 	const Email = req.body.Email;
 
-	const Doctor_Object = await Doctor.findOneAndUpdate(
-		{ Email: Email },
-		{ Account_status: Account_status.Blocked },
-		{ new: true }
-	).catch(err => {
+	const Doctor_Object = await Doctor.findOne({ Email: Email }).catch(err => {
 		return res.status(400).send({
 			status: status_code.Failed,
 			Message: err,
@@ -342,5 +356,23 @@ export const RecoveryAuthentication = async (req, res) => {
 			.send({ status: status_code.Failed, Message: "Wrong Authentication Code" });
 	}
 
-	return res.status(200).send({ status: status_code.Success });
+	const Doctor_Object = await Doctor.findOneAndUpdate(
+		{
+			Email: Email,
+		},
+		{
+			Account_status: Account_status.Blocked,
+		},
+		{
+			new: true,
+		}
+	).catch(err => {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Message: "Internal Error: Account Status not updated" });
+	});
+
+	if (Doctor_Object) {
+		return res.status(200).send({ status: status_code.Success });
+	}
 };
