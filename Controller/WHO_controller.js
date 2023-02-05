@@ -63,7 +63,7 @@ export const WHO_Data = async (req, res) => {
 		]);
 
 		const chunk = 5;
-		dataObject = dataObject.reduce((resultArray, item, index) => {
+		const grouped_dataObject = dataObject.reduce((resultArray, item, index) => {
 			const chunkIndex = Math.floor(index / chunk);
 
 			if (!resultArray[chunkIndex]) {
@@ -74,7 +74,49 @@ export const WHO_Data = async (req, res) => {
 
 			return resultArray;
 		}, []);
-		return res.status(200).send({ status: status_code.Success, data: dataObject });
+
+		const values = dataObject.map(d => {
+			return d.value ? d.value : 0;
+		});
+
+		const max = Math.max(...values);
+		const min = Math.min(...values);
+		const sum = values.reduce((p, v) => p + v, 0);
+
+		const mean =
+			Math.round((values.reduce((acc, value) => acc + value, 0) / values.length) * 100) / 100;
+
+		var variance = values.map(d => {
+			const diff = d - mean;
+			return diff * diff;
+		});
+
+		variance = variance.reduce((acc, value) => acc + value, 0) / variance.length;
+		variance = Math.round(variance * 100) / 100;
+		var standard_deviation = Math.sqrt(
+			values
+				.reduce((acc, value) => acc.concat((value - mean) ** 2), [])
+				.reduce((acc, value) => acc + value, 0) / values.length
+		);
+		standard_deviation = Math.round(standard_deviation * 100) / 100;
+
+		const Analytics = {
+			max,
+			min,
+			sum,
+			mean,
+			standard_deviation,
+			variance,
+		};
+
+		return res
+			.status(200)
+			.send({
+				status: status_code.Success,
+				data: grouped_dataObject,
+				Table_data: dataObject,
+				Analytics,
+			});
 	} else {
 		return res.status(401).send({ status: status_code.Failed, Message: "No Indicator code" });
 	}
