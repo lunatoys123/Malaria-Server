@@ -109,14 +109,12 @@ export const WHO_Data = async (req, res) => {
 			variance,
 		};
 
-		return res
-			.status(200)
-			.send({
-				status: status_code.Success,
-				data: grouped_dataObject,
-				Table_data: dataObject,
-				Analytics,
-			});
+		return res.status(200).send({
+			status: status_code.Success,
+			data: grouped_dataObject,
+			Table_data: dataObject,
+			Analytics,
+		});
 	} else {
 		return res.status(401).send({ status: status_code.Failed, Message: "No Indicator code" });
 	}
@@ -132,6 +130,127 @@ export const GetCountries = async (req, res) => {
 		});
 		return res.status(200).send({ status: status_code.Success, countries });
 	}
+};
+
+export const CompareData = async (req, res) => {
+	const option = req.query.option;
+	const targetCountry = req.query.targetCountry;
+	const currentCountry = req.query.currentCountry;
+
+	if (!option) {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Message: "option should not be empty" });
+	}
+
+	if (!targetCountry || !currentCountry) {
+		return res.status(400).send({
+			status: status_code.Failed,
+			Message: "target country and current country should not be empty",
+		});
+	}
+	var Indicator_Key = getIndicator_key(option);
+	var Compare_data = await WHO.aggregate([
+		{
+			$match: {
+				Indication_code: Indicator_Key,
+				country_code: { $in: [currentCountry, targetCountry] },
+			},
+		},
+		{
+			$project: {
+				data: 1,
+				country_code: 1,
+				_id: 0,
+			},
+		},
+		{
+			$unwind: {
+				path: "$data",
+			},
+		},
+		{
+			$sort: {
+				"data.Year": 1,
+			},
+		},
+		{
+			$project: {
+				country_code: 1,
+				Year: "$data.Year",
+				low: "$data.low",
+				High: "$data.High",
+				value: "$data.value",
+			},
+		},
+	]);
+
+	console.log(Compare_data);
+
+	const compare_data_map = new Map();
+	for (let i = 0; i < Compare_data.length; i++) {
+		if (!compare_data_map.has(Compare_data[i].Year)) {
+			compare_data_map.set(Compare_data[i].Year, [
+				{ country_code: Compare_data[i].country_code, value: Compare_data[i].value },
+			]);
+		} else {
+			var copy_data = compare_data_map.get(Compare_data[i].Year);
+			copy_data.push({ country_code: Compare_data[i].country_code, value: Compare_data[i].value });
+		}
+	}
+
+	let target_Data = [];
+	let current_Data = [];
+
+	for (const [key, value] of compare_data_map) {
+		const targetCountryData = value.filter(v => v.country_code === targetCountry);
+		const currentCountryData = value.filter(v => v.country_code === currentCountry);
+
+		if (targetCountryData.length > 0) {
+			target_Data.push({
+				Year: key,
+				value: targetCountryData[0].value ? targetCountryData[0].value : 0,
+			});
+		} else {
+			target_Data.push({ Year: key, value: 0 });
+		}
+
+		if (currentCountryData.length > 0) {
+			current_Data.push({
+				Year: key,
+				value: currentCountryData[0].value ? currentCountryData[0].value : 0,
+			});
+		} else {
+			current_Data.push({ Year: key, value: 0 });
+		}
+	}
+
+	const chunk = 5;
+	target_Data = target_Data.reduce((resultArray, item, index) => {
+		const chunkIndex = Math.floor(index / chunk);
+
+		if (!resultArray[chunkIndex]) {
+			resultArray[chunkIndex] = [];
+		}
+
+		resultArray[chunkIndex].push(item);
+
+		return resultArray;
+	}, []);
+
+	current_Data = current_Data.reduce((resultArray, item, index) => {
+		const chunkIndex = Math.floor(index / chunk);
+
+		if (!resultArray[chunkIndex]) {
+			resultArray[chunkIndex] = [];
+		}
+
+		resultArray[chunkIndex].push(item);
+
+		return resultArray;
+	}, []);
+
+	return res.status(200).send({ status: status_code.Success, target_Data, current_Data });
 };
 
 function getIndicator_key(option) {
