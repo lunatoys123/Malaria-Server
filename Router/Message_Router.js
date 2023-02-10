@@ -6,5 +6,6 @@ router.post("/Send", MessageController.SendMessageToUser);
 router.post("/ReadState", MessageController.SetReadStateForMessage);
 router.get("/GetMessageForUser", MessageController.GetMessageForUser);
 router.get("/getUnreadCount", MessageController.getUnreadCount);
+router.get("/SearchMessage", MessageController.SearchMessage);
 
 export default router;

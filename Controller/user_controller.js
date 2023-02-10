@@ -7,10 +7,30 @@ import nodemailer from "nodemailer";
 import * as dotenv from "dotenv";
 import { Normal_User_Role } from "../Common/role.js";
 import moment from "moment";
-import { createClient } from "redis";
+import Redis from "ioredis";
+// import { createClient } from "redis";
 
-const client = new createClient();
-client.connect().then(() => console.log("Connected to Redis server"));
+// const client = new createClient({
+// 	host: "redis-15102.c1.asia-northeast1-1.gce.cloud.redislabs.com",
+// 	port: 15102,
+// 	username: "default",
+// 	password: "uqgxpw3cmG6oZy32W5ywA2QuDwUE9psT",
+// 	// username:"lunatoys",
+// 	// password:"!Lunatoys123"
+// });
+// client.connect().then(() => console.log("Connected to Redis server"));
+const client = new Redis({
+	host: "redis-15102.c1.asia-northeast1-1.gce.cloud.redislabs.com",
+	port: 15102,
+	password: "uqgxpw3cmG6oZy32W5ywA2QuDwUE9psT",
+});
+
+client.on("connecting", () => {
+	console.log("Connecting to Redis.");
+});
+client.on("connect", () => {
+	console.log("Success! Redis connection established.");
+});
 
 const Doctor = Malaria.Doctor;
 const Hospital = Malaria.Hospital;

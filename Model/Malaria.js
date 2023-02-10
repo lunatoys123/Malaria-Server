@@ -94,6 +94,7 @@ const WHOSchema = new mongoose.Schema({
 			High: Number,
 		},
 	],
+	Analytics: {},
 });
 
 var WHOModel = connection.model("WHO_DATA", WHOSchema, "WHO_DATA");

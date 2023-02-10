@@ -101,3 +101,54 @@ export const getUnreadCount = async (req, res) => {
 
 	return res.status(200).send({ unreadCount: unreadCount });
 };
+
+export const SearchMessage = async (req, res) => {
+	const Doctor_Id = req.query.Doctor_Id;
+	const search_query = req.query.query;
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_Id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id format is not valid",
+		});
+	}
+
+	const search_Message = await Message.aggregate([
+		{
+			$match: {
+				Doctor_id: mongoose.Types.ObjectId(Doctor_Id),
+				$or: [
+					{
+						Message_title: {
+							$regex: search_query,
+							$options: "i",
+						},
+					},
+					{
+						Message_Content: {
+							$regex: search_query,
+							$options: "i",
+						},
+					},
+					{
+						createdBy: {
+							$regex: search_query,
+							$options: "i",
+						},
+					},
+				],
+			},
+		},
+		{
+			$project: {
+				Message_title: 1,
+				Message_Content: 1,
+				status: 1,
+				createdBy: 1,
+				dtCreated: 1,
+			},
+		},
+	]);
+
+	return res.status(200).send({ Message_Object: search_Message });
+};

@@ -11,6 +11,7 @@ export const Preview = async (req, res) => {
 		return WHO_Indicator_code[code];
 	});
 
+	keys = keys.sort();
 	console.log("keys: ", keys);
 
 	if (keys == null || keys.length == 0) {
@@ -121,7 +122,10 @@ export const WHO_Data = async (req, res) => {
 };
 
 export const GetCountries = async (req, res) => {
-	var countries = await Country_code.find({}, { _id: 0, Options: 1, code: 1, country_name: 1 });
+	var countries = await Country_code.find(
+		{},
+		{ _id: 0, Options: 1, code: 1, country_name: 1 }
+	).sort([["code", 1]]);
 	if (countries == null || countries.length === 0) {
 		return res.status(401).send({ status: status_code.Failed, Message: "countries is not valid" });
 	} else {
@@ -185,7 +189,25 @@ export const CompareData = async (req, res) => {
 		},
 	]);
 
-	console.log(Compare_data);
+	//console.log(Compare_data);
+
+	const Analytics = await WHO.aggregate([
+		{
+			$match: {
+				Indication_code: Indicator_Key,
+				country_code: { $in: [currentCountry, targetCountry] },
+			},
+		},
+		{
+			$project: {
+				country_code: 1,
+				_id: 0,
+				Analytics: 1,
+			},
+		},
+	]);
+
+	//console.log(Analytics);
 
 	const compare_data_map = new Map();
 	for (let i = 0; i < Compare_data.length; i++) {
@@ -250,7 +272,9 @@ export const CompareData = async (req, res) => {
 		return resultArray;
 	}, []);
 
-	return res.status(200).send({ status: status_code.Success, target_Data, current_Data });
+	return res
+		.status(200)
+		.send({ status: status_code.Success, target_Data, current_Data, Compare_Analytics: Analytics });
 };
 
 function getIndicator_key(option) {
