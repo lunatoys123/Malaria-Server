@@ -61,6 +61,13 @@ export const getPatientList = async (req, res) => {
 export const getPatientById = async (req, res) => {
 	const Patient_id = req.query.Patient_id;
 
+	if (!mongoose.Types.ObjectId.isValid(Patient_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Patient id is not valid",
+		});
+	}
+
 	const Patient_Object = await Patient.findOne(
 		{ _id: Patient_id },
 		{
