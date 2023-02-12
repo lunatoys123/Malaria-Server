@@ -64,11 +64,9 @@ export const AddCase = async (req, res) => {
 				Audit_Code: "Malaria_Report_Add",
 			});
 
-			await newAudit
-				.save()
-				.catch(err => {
-					console.log(err);
-				});
+			await newAudit.save().catch(err => {
+				console.log(err);
+			});
 			return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
 		}
 	} else if (mode === Operation_Mode.createWithPatientId) {
@@ -98,11 +96,9 @@ export const AddCase = async (req, res) => {
 				Audit_Code: "Malaria_Report_Created",
 			});
 
-			await newAudit
-				.save()
-				.catch(err => {
-					console.log(err);
-				});
+			await newAudit.save().catch(err => {
+				console.log(err);
+			});
 
 			return res.status(200).send({ status: status_code.Success, Message: "Case establish" });
 		}
@@ -145,11 +141,9 @@ export const addLaboratory = async (req, res) => {
 			Activity: `Add Laboratory on Case: ${case_id}`,
 			Audit_Code: "Malaria_Laboratory_Created",
 		});
-		await newAudit
-			.save()
-			.catch(err => {
-				console.log(err);
-			});
+		await newAudit.save().catch(err => {
+			console.log(err);
+		});
 
 		return res.status(200).send({
 			status: status_code.Success,
@@ -213,11 +207,9 @@ export const addTreatment = async (req, res) => {
 			Activity: `Treatment Report created for Case: ${case_id}`,
 			Audit_Code: "Malaria_Treatment_Created",
 		});
-		await newAudit
-			.save()
-			.catch(err => {
-				console.log(err);
-			});
+		await newAudit.save().catch(err => {
+			console.log(err);
+		});
 		return res.status(200).send({ status: status_code.Success, Message: "Treatment establish" });
 	}
 };
@@ -535,11 +527,9 @@ export const updateReportById = async (req, res) => {
 			Activity: `Update Case Report : ${case_id}`,
 			Audit_Code: "Malaria_Case_Update",
 		});
-		await newAudit
-			.save()
-			.catch(err => {
-				console.log(err);
-			});
+		await newAudit.save().catch(err => {
+			console.log(err);
+		});
 		return res.status(200).send({
 			status: status_code.Success,
 			Message: "Report Updated Successfully",
@@ -584,11 +574,9 @@ export const updateTreatmentByCaseId = async (req, res) => {
 			Audit_Code: "Malaria_Treatment_Update",
 		});
 
-		await newAudit
-			.save()
-			.catch(err => {
-				console.log(err);
-			});
+		await newAudit.save().catch(err => {
+			console.log(err);
+		});
 		return res.status(200).send({ status: status_code.Success, Message: "Treatment updated" });
 	}
 };
@@ -626,11 +614,120 @@ export const updateLaboratoryByCaseId = async (req, res) => {
 			Audit_Code: "Malaria_Laboratory_Update",
 		});
 
-		await newAudit
-			.save()
-			.catch(err => {
-				console.log(err);
-			});
+		await newAudit.save().catch(err => {
+			console.log(err);
+		});
 		return res.status(200).send({ status: status_code.Success, Message: "Laboratory updated" });
 	}
+};
+
+export const SearchCasewithQuery = async (req, res) => {
+	const query = req.query;
+	const Doctor_id = query.Doctor_id;
+	const PatientName = query.PatientName;
+	const ReportStatus = query.ReportStatus;
+	const searchStatus = query.searchStatus;
+	const searchStartDate = query.searchStartDate;
+	const searchEndDate = query.searchEndDate;
+	//console.log(query);
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id format is not valid",
+		});
+	}
+
+	let match_query = {
+		Doctor_id: mongoose.Types.ObjectId(Doctor_id),
+		Patient_Status: { $regex: searchStatus },
+		Report_Status: { $regex: ReportStatus },
+	};
+
+	if (searchStartDate != null && searchEndDate != null) {
+		match_query = {
+			...match_query,
+			dtCreated: {
+				$gte: new Date(searchStartDate),
+				$lte: new Date(searchEndDate),
+			},
+		};
+	} else if (searchStartDate != null) {
+		match_query = {
+			...match_query,
+			dtCreated: { $gte: new Date(searchStartDate) },
+		};
+	} else if (searchEndDate != null) {
+		match_query = {
+			...match_query,
+			dtCreated: { $lte: new Date(searchEndDate) },
+		};
+	}
+
+	const search_Object = await Case.aggregate([
+		{
+			$match: match_query,
+		},
+		{
+			$lookup: {
+				from: "Patient",
+				localField: "Patient_id",
+				foreignField: "_id",
+				as: "Patient",
+			},
+		},
+		{
+			$lookup: {
+				from: "Treatment",
+				localField: "_id",
+				foreignField: "case_id",
+				as: "Treatment",
+			},
+		},
+		{
+			$lookup: {
+				from: "Laboratory",
+				localField: "_id",
+				foreignField: "case_id",
+				as: "Laboratory",
+			},
+		},
+		{
+			$unwind: {
+				path: "$Patient",
+			},
+		},
+		{
+			$match: {
+				"Patient.Name": { $regex: PatientName, $options: "i" },
+			},
+		},
+		{
+			$project: {
+				Patient_Name: "$Patient.Name",
+				Patient_Status: 1,
+				Status_date: 1,
+				Report_Status: 1,
+				Patient_id: 1,
+				haveTreatment: {
+					$cond: {
+						if: { $gt: [{ $size: "$Treatment" }, 0] },
+						then: true,
+						else: false,
+					},
+				},
+				haveLaboratory: {
+					$cond: {
+						if: { $gt: [{ $size: "$Laboratory" }, 0] },
+						then: true,
+						else: false,
+					},
+				},
+			},
+		},
+	]);
+
+	console.log(search_Object);
+
+	return res.status(200).send(search_Object);
 };

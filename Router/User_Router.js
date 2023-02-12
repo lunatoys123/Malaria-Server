@@ -10,6 +10,8 @@ router.post("/ResetPassword", userController.ResetPassword);
 //For Exists User that forget Password
 router.post("/ForgetPasswordProcess", userController.ForgetordProcess);
 router.post("/Recovery_Authentication", userController.RecoveryAuthentication);
+router.post("/deleteUser", userController.deleteUser);
+router.post("/recoverUser", userController.recoverUser);
 router.get("/all", userController.GetAllUser);
 router.get(
 	"/GetNormalUsersFromHospital",

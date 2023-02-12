@@ -10,6 +10,7 @@ router.get("/getCaseById", caseController.getCaseByDoctorId);
 router.get("/getCaseByCaseId", caseController.getCaseByCaseId);
 router.get("/getTreatmentByCaseId", caseController.getTreatmentByCaseId);
 router.get("/getLaboratoryByCaseId", caseController.getLaboratoryByCaseId);
+router.get("/SearchCasewithQuery", caseController.SearchCasewithQuery);
 router.get("/view/case/:id", caseController.viewReportByCaseId);
 router.put("/updateReportById", caseController.updateReportById);
 router.put("/updateTreatmentByCaseId", caseController.updateTreatmentByCaseId);

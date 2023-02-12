@@ -396,3 +396,101 @@ export const RecoveryAuthentication = async (req, res) => {
 		return res.status(200).send({ status: status_code.Success });
 	}
 };
+
+export const deleteUser = async (req, res) => {
+	var Doctor_id = req.body.Doctor_id;
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id is not valid",
+		});
+	} else {
+		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
+	}
+
+	const Doctor_Object = await Doctor.findOneAndUpdate(
+		{
+			_id: Doctor_id,
+		},
+		{
+			Account_status: Account_status.Deleted,
+		},
+		{
+			new: true,
+		}
+	).catch(err => {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Message: "Internal Error: Account Status not updated" });
+	});
+
+	if (Doctor_Object) {
+		const Hospital_id = Doctor_Object.Hospital_id;
+		const NormalUser = await Doctor.find(
+			{ Hospital_id: Hospital_id, Role: Normal_User_Role },
+			{ Login_name: 1, Email: 1, Phone_number: 1, Account_status: 1 }
+		).catch(err => {
+			return res.status(404).send({ status: status_code.Failed, Message: err });
+		});
+
+		return res.status(200).send({
+			status: status_code.Success,
+			AccountManagement: NormalUser,
+			Message: `user ${Doctor_Object.Login_name} deleted successfully`,
+		});
+	} else {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Message: "Doctor not exists in System" });
+	}
+};
+
+export const recoverUser = async (req, res) => {
+	var Doctor_id = req.body.Doctor_id;
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id is not valid",
+		});
+	} else {
+		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
+	}
+
+	const Doctor_Object = await Doctor.findOneAndUpdate(
+		{
+			_id: Doctor_id,
+		},
+		{
+			Account_status: Account_status.Active,
+		},
+		{
+			new: true,
+		}
+	).catch(err => {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Message: "Internal Error: Account Status not updated" });
+	});
+
+	if (Doctor_Object) {
+		const Hospital_id = Doctor_Object.Hospital_id;
+		const NormalUser = await Doctor.find(
+			{ Hospital_id: Hospital_id, Role: Normal_User_Role },
+			{ Login_name: 1, Email: 1, Phone_number: 1, Account_status: 1 }
+		).catch(err => {
+			return res.status(404).send({ status: status_code.Failed, Message: err });
+		});
+
+		return res.status(200).send({
+			status: status_code.Success,
+			AccountManagement: NormalUser,
+			Message: `user ${Doctor_Object.Login_name} recover successfully`,
+		});
+	} else {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Message: "Doctor not exists in System" });
+	}
+};
