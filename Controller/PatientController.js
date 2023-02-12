@@ -8,6 +8,13 @@ const Patient = Malaria.Patient;
 export const getPatientList = async (req, res) => {
 	const Doctor_id = req.query.Doctor_id;
 
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id is not valid",
+		});
+	}
+
 	var PatientObject = await Case.aggregate([
 		{
 			$match: {
