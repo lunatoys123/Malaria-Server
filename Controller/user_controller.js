@@ -19,10 +19,13 @@ import Redis from "ioredis";
 // 	// password:"!Lunatoys123"
 // });
 // client.connect().then(() => console.log("Connected to Redis server"));
+dotenv.config();
+const Redis_host = process.env.Redis_host;
+const Redis_pass = process.env.Redis_pass;
 const client = new Redis({
-	host: "redis-15102.c1.asia-northeast1-1.gce.cloud.redislabs.com",
+	host: Redis_host,
 	port: 15102,
-	password: "uqgxpw3cmG6oZy32W5ywA2QuDwUE9psT",
+	password: Redis_pass,
 });
 
 client.on("connecting", () => {
@@ -36,7 +39,7 @@ const Doctor = Malaria.Doctor;
 const Hospital = Malaria.Hospital;
 const Audit = Malaria.Audit;
 
-dotenv.config();
+// dotenv.config();
 const mail_pass = process.env.mail_pass;
 
 function generateRandomPassword(
