@@ -23,7 +23,7 @@ export const RegisterHosptial = async (req, res) => {
   if (exist_hospital) {
     return res
       .status(200)
-      .send({ status: status_code.Failed, Message: "Hospital already exists" });
+      .send({ status: status_code.Failed, Error: "Hospital already exists" });
   }
   await new_hospital
     .save()
@@ -35,7 +35,7 @@ export const RegisterHosptial = async (req, res) => {
     .catch((err) => {
       return res
         .status(400)
-        .send({ status: status_code.Failed, error: err.message });
+        .send({ status: status_code.Failed, Error: err.message });
     });
 };
 
@@ -45,7 +45,7 @@ export const findAllRegion = async (req, res) => {
   if (regions == null || regions.length == 0) {
     return res
       .status(404)
-      .send({ status: status_code.Failed, Message: "Region list is empty" });
+      .send({ status: status_code.Failed, Error: "Region list is empty" });
   }
   regions = regions.map((obj) => {
     return { code: obj.code, Options: obj.Options };

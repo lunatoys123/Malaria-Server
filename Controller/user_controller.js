@@ -69,7 +69,7 @@ export const Register = async (req, res) => {
 
 	const exist_hospital_id = await Hospital.findOne({ _id: Hospital_id });
 	if (exist_hospital_id == null) {
-		return res.status(400).send({ status: status_code.Failed, Message: "Hospital id not exist" });
+		return res.status(400).send({ status: status_code.Failed, Error: "Hospital id not exist" });
 	}
 
 	const newUser = new Doctor({
@@ -146,7 +146,7 @@ export const Login = async (req, res) => {
 		Password: 1,
 	});
 	if (!user) {
-		return res.status(400).send({ status: status_code.Failed, Message: "User Not exist" });
+		return res.status(400).send({ status: status_code.Failed, Error: "User Not exist" });
 	}
 	if (user && bcrypt.compareSync(Password, user.Password)) {
 		const token = jwt.sign(
@@ -250,7 +250,7 @@ export const ResetPassword = async (req, res) => {
 			{ Password: Password, Account_status: Account_status.Active },
 			{ new: true }
 		).catch(err => {
-			return res.status(400).send({ status: status_code.Failed, Message: err });
+			return res.status(400).send({ status: status_code.Failed, Error: err });
 		});
 
 		if (Doctor_Object) {
@@ -495,5 +495,48 @@ export const recoverUser = async (req, res) => {
 		return res
 			.status(400)
 			.send({ status: status_code.Failed, Message: "Doctor not exists in System" });
+	}
+};
+
+export const SearchQueryForUser = async (req, res) => {
+	var Doctor_id = req.query.Doctor_id;
+	const searchQuery = req.query.searchQuery;
+
+	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
+	} else {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Message: "Doctor id format is not valid",
+		});
+	}
+
+	const user_object = await Doctor.findOne({ _id: Doctor_id }, {});
+
+	if (user_object) {
+		const Hospital_id = user_object.Hospital_id;
+		const NormalUser = await Doctor.aggregate([
+			{
+				$match: {
+					Hospital_id: Hospital_id,
+					Role: Normal_User_Role,
+					Login_name: { $regex: searchQuery, $options: "i" },
+				},
+			},
+			{
+				$project: {
+					Login_name: 1,
+					Email: 1,
+					Phone_number: 1,
+					Account_status: 1,
+				},
+			},
+		]);
+
+		return res.status(200).send({ AccountManagement: NormalUser });
+	} else {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Error: "Doctor Id not exist in system" });
 	}
 };
