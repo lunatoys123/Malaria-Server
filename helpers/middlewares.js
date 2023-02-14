@@ -13,11 +13,12 @@ export const checkAdminRight = async (req, res, next) => {
 
 	// console.log(Doctor_id);
 	const doctor = await Doctor.findOne({ _id: Doctor_id }, {});
+	
 	//console.log(doctor);
 	if (doctor.Role !== Admin_Role) {
-		return res.status(404).send({ status: status_code.Failed, Message: "Not authorized" });
+		return res.status(404).send({ status: status_code.Failed, Error: "Not authorized" });
 	} else if (doctor.Account_status === Account_status.Pending) {
-		return res.status(404).send({ status: status_code.Failed, Message: "Not authorized" });
+		return res.status(404).send({ status: status_code.Failed, Error: "Not authorized" });
 	}
 	next();
 };

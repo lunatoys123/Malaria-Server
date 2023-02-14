@@ -288,7 +288,7 @@ export const GetAllUserFromHospital = async (req, res) => {
 };
 
 export const GetAuditFromDoctorId = async (req, res) => {
-	var Doctor_id = req.query.Doctor_id;
+	var Doctor_id = req.query.target_Doctor_id;
 
 	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		return res.status(404).send({
