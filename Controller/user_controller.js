@@ -8,17 +8,8 @@ import * as dotenv from "dotenv";
 import { Normal_User_Role } from "../Common/role.js";
 import moment from "moment";
 import Redis from "ioredis";
-// import { createClient } from "redis";
+import { summary_color_wheel } from "../Common/colorwheel.js";
 
-// const client = new createClient({
-// 	host: "redis-15102.c1.asia-northeast1-1.gce.cloud.redislabs.com",
-// 	port: 15102,
-// 	username: "default",
-// 	password: "uqgxpw3cmG6oZy32W5ywA2QuDwUE9psT",
-// 	// username:"lunatoys",
-// 	// password:"!Lunatoys123"
-// });
-// client.connect().then(() => console.log("Connected to Redis server"));
 dotenv.config();
 const Redis_host = process.env.Redis_host;
 const Redis_pass = process.env.Redis_pass;
@@ -534,6 +525,125 @@ export const SearchQueryForUser = async (req, res) => {
 		]);
 
 		return res.status(200).send({ AccountManagement: NormalUser });
+	} else {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Error: "Doctor Id not exist in system" });
+	}
+};
+
+export const HospitalSummaryData = async (req, res) => {
+	const Doctor_id = req.query.Doctor_id;
+	//console.log(Doctor_id);
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Message: "Doctor id format is not valid",
+		});
+	}
+	const user_object = await Doctor.findOne({ _id: Doctor_id }, {});
+
+	if (user_object) {
+		const Hospital_id = user_object.Hospital_id;
+		const Patient_Status_Summary = await Doctor.aggregate([
+			{
+				$match: {
+					Hospital_id: Hospital_id,
+					_id: { $ne: mongoose.Types.ObjectId(Doctor_id) },
+					Role: Normal_User_Role,
+				},
+			},
+			{
+				$lookup: {
+					from: "Case",
+					localField: "_id",
+					foreignField: "Doctor_id",
+					as: "Case",
+				},
+			},
+			{
+				$project: {
+					Case: 1,
+				},
+			},
+			{
+				$unwind: {
+					path: "$Case",
+				},
+			},
+			{
+				$group: {
+					_id: "$Case.Report_Status",
+					survived: {
+						$sum: {
+							$cond: {
+								if: { $eq: ["$Case.Patient_Status", "survived"] },
+								then: 1,
+								else: 0,
+							},
+						},
+					},
+					Died: {
+						$sum: {
+							$cond: {
+								if: { $eq: ["$Case.Patient_Status", "Died"] },
+								then: 1,
+								else: 0,
+							},
+						},
+					},
+					Stable: {
+						$sum: {
+							$cond: {
+								if: { $eq: ["$Case.Patient_Status", "Stable Condition"] },
+								then: 1,
+								else: 0,
+							},
+						},
+					},
+					Emergency: {
+						$sum: {
+							$cond: {
+								if: { $eq: ["$Case.Patient_Status", "Emergency"] },
+								then: 1,
+								else: 0,
+							},
+						},
+					},
+					Unknown: {
+						$sum: {
+							$cond: {
+								if: { $eq: ["$Case.Patient_Status", "Unknown"] },
+								then: 1,
+								else: 0,
+							},
+						},
+					},
+				},
+			},
+		]);
+
+		let Patient_Summary = [];
+		for (let i = 0; i < Patient_Status_Summary.length; i++) {
+			const data = Patient_Status_Summary[i];
+			const label = data._id;
+
+			let combine_data = [];
+			Object.keys(data).forEach(key => {
+				if (key != "_id") {
+					combine_data.push({
+						name: key,
+						data: data[key],
+						color: summary_color_wheel[key],
+						legendFontColor: "#7F7F7F",
+						legendFontSize: 15,
+					});
+				}
+			});
+			Patient_Summary.push({ label, data: combine_data });
+		}
+		return res.status(200).send({ Patient_Summary });
 	} else {
 		return res
 			.status(400)

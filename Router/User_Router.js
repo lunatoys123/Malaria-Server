@@ -21,5 +21,6 @@ router.get(
 router.get("/GetAllUserFromHospital", userController.GetAllUserFromHospital);
 router.get("/GetAuditFromDoctorId", checkAdminRight, userController.GetAuditFromDoctorId);
 router.get("/SearchQueryForUser", checkAdminRight, userController.SearchQueryForUser);
+router.get("/HospitalSummaryData", checkAdminRight,userController.HospitalSummaryData)
 
 export default router;
