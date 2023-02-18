@@ -8,7 +8,11 @@ import * as dotenv from "dotenv";
 import { Normal_User_Role } from "../Common/role.js";
 import moment from "moment";
 import Redis from "ioredis";
-import { summary_color_wheel } from "../Common/colorwheel.js";
+import {
+	summary_color_wheel,
+	Total_Case_Summary_wheel,
+	Treatment_Summary_wheel,
+} from "../Common/colorwheel.js";
 
 dotenv.config();
 const Redis_host = process.env.Redis_host;
@@ -29,6 +33,7 @@ client.on("connect", () => {
 const Doctor = Malaria.Doctor;
 const Hospital = Malaria.Hospital;
 const Audit = Malaria.Audit;
+const Treatment = Malaria.Treatment;
 
 // dotenv.config();
 const mail_pass = process.env.mail_pass;
@@ -644,6 +649,149 @@ export const HospitalSummaryData = async (req, res) => {
 			Patient_Summary.push({ label, data: combine_data });
 		}
 		return res.status(200).send({ Patient_Summary });
+	} else {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Error: "Doctor Id not exist in system" });
+	}
+};
+
+export const TreatmentSummaryData = async (req, res) => {
+	const Doctor_id = req.query.Doctor_id;
+	console.log(Doctor_id);
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Message: "Doctor id format is not valid",
+		});
+	}
+
+	const user_object = await Doctor.findOne({ _id: Doctor_id }, {});
+
+	if (user_object) {
+		const Hospital_id = user_object.Hospital_id;
+
+		var case_ids = await Doctor.aggregate([
+			{
+				$match: {
+					Hospital_id: Hospital_id,
+					_id: { $ne: mongoose.Types.ObjectId(Doctor_id) },
+					Role: Normal_User_Role,
+				},
+			},
+			{
+				$project: {
+					Doctor_id: "$_id",
+					_id: 0,
+				},
+			},
+			{
+				$lookup: {
+					from: "Case",
+					localField: "Doctor_id",
+					foreignField: "Doctor_id",
+					as: "Case",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Case",
+				},
+			},
+			{
+				$project: {
+					case_id: "$Case._id",
+				},
+			},
+		]);
+
+		case_ids = case_ids.map(d => d.case_id);
+
+		const case_Objects = await Treatment.aggregate([
+			{
+				$match: {
+					case_id: { $in: case_ids },
+				},
+			},
+			{
+				$group: {
+					_id: null,
+					Received: {
+						$sum: {
+							$cond: {
+								if: { $eq: ["$Received", "Yes"] },
+								then: 1,
+								else: 0,
+							},
+						},
+					},
+					Not_Received: {
+						$sum: {
+							$cond: {
+								if: { $eq: ["$Received", "No"] },
+								then: 1,
+								else: 0,
+							},
+						},
+					},
+				},
+			},
+			{
+				$project: {
+					_id: 0,
+					Received: 1,
+					Not_Received: 1,
+				},
+			},
+		]);
+
+		//console.log(case_Objects);
+		const exist_case = case_Objects[0].Received + case_Objects[0].Not_Received;
+		const total_case = case_ids.length;
+
+		var Treatment_status = [];
+		for (let i = 0; i < case_Objects.length; i++) {
+			const data = case_Objects[i];
+			let combine_data = [];
+
+			Object.keys(data).forEach(key => {
+				if (key != "_id") {
+					combine_data.push({
+						name: key,
+						data: data[key],
+						color: Total_Case_Summary_wheel[key],
+						legendFontColor: "#7F7F7F",
+						legendFontSize: 10,
+					});
+				}
+			});
+
+			Treatment_status.push({ label: "Treatment status", data: combine_data });
+		}
+		// console.log(...Treatment_status);
+
+		var temp_Summary = [{ Have_Treatement: exist_case, No_Treatment: total_case - exist_case }];
+		var Treatment_Summary = [];
+		for (let i = 0; i < temp_Summary.length; i++) {
+			const data = temp_Summary[i];
+
+			let combine_data = [];
+
+			Object.keys(data).forEach(key => {
+				if (key != "_id") {
+					combine_data.push({
+						name: key,
+						data: data[key],
+						color: Treatment_Summary_wheel[key],
+						legendFontColor: "#7F7F7F",
+						legendFontSize: 10,
+					});
+				}
+			});
+			Treatment_Summary.push({ label: "Treatment summary", data: combine_data });
+		}
+		return res.status(200).send({ Treatment_status, Treatment_Summary });
 	} else {
 		return res
 			.status(400)
