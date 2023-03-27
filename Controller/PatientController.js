@@ -122,6 +122,8 @@ export const editPersonalInformationById = async (req, res) => {
 export const searchPatientWithQuery = async (req, res) => {
 	const Doctor_id = req.query.Doctor_id;
 	const searchQuery = req.query.searchQuery;
+	const Page = Number(req.query.Page);
+	const limit = Number(req.query.limit);
 
 	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		return res.status(404).send({
@@ -130,7 +132,7 @@ export const searchPatientWithQuery = async (req, res) => {
 		});
 	}
 
-	const search_Object = await Case.aggregate([
+	const patient_query = [
 		{
 			$match: {
 				Doctor_id: mongoose.Types.ObjectId(Doctor_id),
@@ -165,6 +167,14 @@ export const searchPatientWithQuery = async (req, res) => {
 				],
 			},
 		},
+	];
+
+	var Max_count = await Case.aggregate([...patient_query]).count("Patient");
+	//console.log(Max_Page);
+	Max_count = Max_count.length == 0 ? 1 : Max_count[0].Patient;
+
+	const search_Object = await Case.aggregate([
+		...patient_query,
 		{
 			$project: {
 				_id: 0,
@@ -175,9 +185,16 @@ export const searchPatientWithQuery = async (req, res) => {
 				Email: "$Patient.Email",
 			},
 		},
+		{
+			$skip: (Page - 1) * limit,
+		},
+		{
+			$limit: limit,
+		},
 	]);
 
-	console.log(search_Object);
+	//console.log(search_Object);
+	const Max_Page = Math.floor(Max_count / limit) + 1;
 
-	return res.status(200).send({ data: search_Object });
+	return res.status(200).send({ data: search_Object, Page, limit, Max_Page });
 };

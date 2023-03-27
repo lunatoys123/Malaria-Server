@@ -76,7 +76,7 @@ export const SetReadStateForMessage = async (req, res) => {
 	});
 
 	if (Message_object) {
-		return res.status(200).send({ status: status_code.OK, Message: "Message status updated" });
+		return res.status(200).send({ status: status_code.Success, Message: "Message status updated" });
 	}
 };
 

@@ -1,5 +1,5 @@
 import Malaria from "../Model/Malaria.js";
-import { Account_status, status_code, User_Status } from "../Common/status_code.js";
+import { Account_status, status_code, User_Status, Y_Axis_Mode } from "../Common/status_code.js";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
@@ -13,6 +13,7 @@ import {
 	Total_Case_Summary_wheel,
 	Treatment_Summary_wheel,
 } from "../Common/colorwheel.js";
+import { All_Status, All_Threapy, All_Drug } from "../Common/Options.js";
 
 dotenv.config();
 const Redis_host = process.env.Redis_host;
@@ -330,7 +331,7 @@ export const ForgetordProcess = async (req, res) => {
 
 	const Authentication_Code = generateRandomPassword(6, "0123456789");
 	//console.log("Authentication Code: ", Authentication_Code);
-	client.setEx(`${Email}:Auth`, 180, Authentication_Code);
+	client.setex(`${Email}:Auth`, 180, Authentication_Code);
 
 	let transporter = nodemailer.createTransport({
 		service: "gmail",
@@ -367,7 +368,7 @@ export const RecoveryAuthentication = async (req, res) => {
 	const Authentication_Code = req.body.AuthenticationCode;
 	const Email = req.body.Email;
 
-	const value = await client.get(`${Email}:Auth`).catch(err => console.log(err));
+	const value = await client.getex(`${Email}:Auth`).catch(err => console.log(err));
 
 	if (value !== Authentication_Code) {
 		return res
@@ -497,6 +498,11 @@ export const recoverUser = async (req, res) => {
 export const SearchQueryForUser = async (req, res) => {
 	var Doctor_id = req.query.Doctor_id;
 	const searchQuery = req.query.searchQuery;
+	const Page = Number(req.query.Page);
+	const limit = Number(req.query.limit);
+
+	// console.log(Page);
+	// console.log(limit);
 
 	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		Doctor_id = mongoose.Types.ObjectId(Doctor_id);
@@ -527,9 +533,18 @@ export const SearchQueryForUser = async (req, res) => {
 					Account_status: 1,
 				},
 			},
+			{
+				$skip: (Page - 1) * limit,
+			},
+			{
+				$limit: limit,
+			},
 		]);
 
-		return res.status(200).send({ AccountManagement: NormalUser });
+		const Max_Page = Math.floor(NormalUser.length / limit) + 1;
+		//console.log(Max_Page);
+
+		return res.status(200).send({ AccountManagement: NormalUser, Page, limit, Max_Page });
 	} else {
 		return res
 			.status(400)
@@ -601,7 +616,7 @@ export const HospitalSummaryData = async (req, res) => {
 					Stable: {
 						$sum: {
 							$cond: {
-								if: { $eq: ["$Case.Patient_Status", "Stable Condition"] },
+								if: { $eq: ["$Case.Patient_Status", "Stable"] },
 								then: 1,
 								else: 0,
 							},
@@ -658,7 +673,6 @@ export const HospitalSummaryData = async (req, res) => {
 
 export const TreatmentSummaryData = async (req, res) => {
 	const Doctor_id = req.query.Doctor_id;
-	console.log(Doctor_id);
 
 	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		return res.status(404).send({
@@ -671,6 +685,8 @@ export const TreatmentSummaryData = async (req, res) => {
 
 	if (user_object) {
 		const Hospital_id = user_object.Hospital_id;
+		// console.log(Hospital_id);
+		// console.log(Doctor_id);
 
 		var case_ids = await Doctor.aggregate([
 			{
@@ -791,10 +807,751 @@ export const TreatmentSummaryData = async (req, res) => {
 			});
 			Treatment_Summary.push({ label: "Treatment summary", data: combine_data });
 		}
-		return res.status(200).send({ Treatment_status, Treatment_Summary });
+
+		const Treatment_count = await Doctor.aggregate([
+			{
+				$match: {
+					Hospital_id: Hospital_id,
+					_id: { $ne: mongoose.Types.ObjectId(Doctor_id) },
+					Role: Normal_User_Role,
+				},
+			},
+			{
+				$project: {
+					Doctor_id: "$_id",
+					_id: 0,
+				},
+			},
+			{
+				$lookup: {
+					from: "Case",
+					localField: "Doctor_id",
+					foreignField: "Doctor_id",
+					as: "Case",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Case",
+				},
+			},
+			{
+				$group: {
+					_id: "$Case.Patient_Status",
+					case_ids: {
+						$push: "$Case._id",
+					},
+				},
+			},
+			{
+				$lookup: {
+					from: "Treatment",
+					let: {
+						case_ids: "$case_ids",
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$in: ["$case_id", "$$case_ids"],
+								},
+							},
+						},
+						{
+							$match: {
+								$expr: {
+									$eq: ["$Received", "Yes"],
+								},
+							},
+						},
+					],
+					as: "Treatment",
+				},
+			},
+			{
+				$project: {
+					Patient_Status: "$_id",
+					Threapy: {
+						$cond: {
+							if: { $ne: ["$Treatment.Therapy_Other", ""] },
+							then: "$Treatment.Therapy",
+							else: "$Treatment.Therapy_Other",
+						},
+					},
+					_id: 0,
+				},
+			},
+			{
+				$unwind: {
+					path: "$Threapy",
+				},
+			},
+			{
+				$group: {
+					_id: {
+						Threapy: "$Threapy",
+						Patient_Status: "$Patient_Status",
+					},
+					count: {
+						$sum: 1,
+					},
+				},
+			},
+			{
+				$project: {
+					Threapy: "$_id.Threapy",
+					Patient_Status: "$_id.Patient_Status",
+					count: 1,
+					_id: 0,
+				},
+			},
+		]);
+
+		var Treatment_count_map = new Map();
+		for (let i = 0; i < Treatment_count.length; i++) {
+			if (!Treatment_count_map.has(Treatment_count[i].Threapy)) {
+				Treatment_count_map.set(Treatment_count[i].Threapy, [
+					{
+						count: Treatment_count[i].count,
+						Patient_Status: Treatment_count[i].Patient_Status,
+					},
+				]);
+			} else {
+				var copy_data = Treatment_count_map.get(Treatment_count[i].Threapy);
+				copy_data.push({
+					count: Treatment_count[i].count,
+					Patient_Status: Treatment_count[i].Patient_Status,
+				});
+			}
+		}
+
+		const Treatment_count_map_keys = Array.from(Treatment_count_map.keys());
+		for (let i = 0; i < All_Threapy.length; i++) {
+			if (!Treatment_count_map_keys.includes(All_Threapy[i])) {
+				var data = [];
+				for (let i = 0; i < All_Status.length; i++) {
+					data.push({ count: 0, Patient_Status: All_Status[i] });
+				}
+				Treatment_count_map.set(All_Threapy[i], data);
+			}
+		}
+		Treatment_count_map = new Map([...Treatment_count_map].sort());
+		//console.log(Treatment_count_map);
+		var Treatment_count_data = [];
+		for (const [key, value] of Treatment_count_map) {
+			var copy_data = [];
+
+			const Patient_Status = value.map(d => d.Patient_Status);
+
+			for (let i = 0; i < All_Status.length; i++) {
+				if (!Patient_Status.includes(All_Status[i])) {
+					copy_data.push({
+						count: 0,
+						Patient_Status: All_Status[i],
+					});
+				} else {
+					const filter = value.filter(d => d.Patient_Status === All_Status[i]);
+					copy_data = copy_data.concat(filter);
+					//copy_data.push(filter);
+				}
+			}
+			//console.log(copy_data);
+			const label = copy_data.map(d => d.Patient_Status);
+			const data = copy_data.map(d => d.count);
+
+			Treatment_count_data.push({ title: key, label, data });
+		}
+
+		const Drug_Object = await Doctor.aggregate([
+			{
+				$match: {
+					Hospital_id: Hospital_id,
+					_id: { $ne: mongoose.Types.ObjectId(Doctor_id) },
+					Role: Normal_User_Role,
+				},
+			},
+			{
+				$project: {
+					Doctor_id: "$_id",
+					_id: 0,
+				},
+			},
+			{
+				$lookup: {
+					from: "Case",
+					localField: "Doctor_id",
+					foreignField: "Doctor_id",
+					as: "Case",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Case",
+				},
+			},
+			{
+				$group: {
+					_id: "$Case.Patient_Status",
+					case_ids: {
+						$push: "$Case._id",
+					},
+				},
+			},
+			{
+				$lookup: {
+					from: "Treatment",
+					let: {
+						case_ids: "$case_ids",
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$in: ["$case_id", "$$case_ids"],
+								},
+							},
+						},
+						{
+							$match: {
+								$expr: {
+									$eq: ["$Received", "Yes"],
+								},
+							},
+						},
+					],
+					as: "Treatment",
+				},
+			},
+			{
+				$project: {
+					Patient_Status: "$_id",
+					Drug: {
+						$cond: {
+							if: { $ne: ["$Treatment.Drug_taken_Other", ""] },
+							then: "$Treatment.Drug_taken",
+							else: "$Treatment.Drug_taken_Other",
+						},
+					},
+					_id: 0,
+				},
+			},
+			{
+				$unwind: {
+					path: "$Drug",
+				},
+			},
+			{
+				$group: {
+					_id: {
+						Drug: "$Drug",
+						Patient_Status: "$Patient_Status",
+					},
+					count: { $sum: 1 },
+				},
+			},
+			{
+				$project: {
+					Patient_Status: "$_id.Patient_Status",
+					Drug: "$_id.Drug",
+					count: 1,
+					_id: 0,
+				},
+			},
+		]);
+
+		var Drug_map = new Map();
+		for (let i = 0; i < Drug_Object.length; i++) {
+			if (!Drug_map.has(Drug_Object[i].Drug)) {
+				Drug_map.set(Drug_Object[i].Drug, [
+					{
+						count: Drug_Object[i].count,
+						Patient_Status: Drug_Object[i].Patient_Status,
+					},
+				]);
+			} else {
+				var copy_data = Drug_map.get(Drug_Object[i].Drug);
+				copy_data.push({
+					count: Drug_Object[i].count,
+					Patient_Status: Drug_Object[i].Patient_Status,
+				});
+			}
+		}
+
+		const Drug_map_keys = Array.from(Drug_map.keys());
+		for (let i = 0; i < All_Drug.length; i++) {
+			if (!Drug_map_keys.includes(All_Drug[i])) {
+				var data = [];
+				for (let i = 0; i < All_Status.length; i++) {
+					data.push({ count: 0, Patient_Status: All_Status[i] });
+				}
+				Drug_map.set(All_Drug[i], data);
+			}
+		}
+		Drug_map = new Map([...Drug_map].sort());
+		var Drug_data = [];
+		for (const [key, value] of Drug_map) {
+			var copy_data = [];
+
+			const Patient_Status = value.map(d => d.Patient_Status);
+
+			for (let i = 0; i < All_Status.length; i++) {
+				if (!Patient_Status.includes(All_Status[i])) {
+					copy_data.push({
+						count: 0,
+						Patient_Status: All_Status[i],
+					});
+				} else {
+					const filter = value.filter(d => d.Patient_Status === All_Status[i]);
+					copy_data = copy_data.concat(filter);
+					//copy_data.push(filter);
+				}
+			}
+			//console.log(copy_data);
+			const label = copy_data.map(d => d.Patient_Status);
+			const data = copy_data.map(d => d.count);
+
+			Drug_data.push({ title: key, label, data });
+		}
+
+		//console.log(Drug_data);
+
+		return res
+			.status(200)
+			.send({ Treatment_status, Treatment_Summary, Treatment_count_data, Drug_data });
 	} else {
 		return res
 			.status(400)
 			.send({ status: status_code.Failed, Error: "Doctor Id not exist in system" });
 	}
 };
+
+export const AdminAnalytics = async (req, res) => {
+	const Doctor_id = req.query.Doctor_id;
+	const xAxis = req.query.xAxis;
+	//const xAxis = "Hosplitalization"
+	const yAxis = req.query.yAxis;
+	const mode = req.query.mode;
+	// console.log(mode);
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Message: "Doctor id format is not valid",
+		});
+	}
+
+	const user_object = await Doctor.findOne({ _id: Doctor_id }, {});
+
+	if (user_object) {
+		const Hospital_id = user_object.Hospital_id;
+		// console.log(Hospital_id);
+		// console.log(Doctor_id);
+
+		var Analytics = null;
+		switch (mode) {
+			case Y_Axis_Mode.searchWithSign:
+				Analytics = await getSignResults(Doctor_id, Hospital_id, xAxis, yAxis);
+				break;
+			case Y_Axis_Mode.searchWithComplications:
+				Analytics = await getComplicationResult(Doctor_id, Hospital_id, xAxis, yAxis);
+				break;
+			default:
+				break;
+		}
+		//console.log(...Analytics);
+		return res.status(200).send({ Analytics: Analytics });
+	} else {
+		return res
+			.status(400)
+			.send({ status: status_code.Failed, Error: "Doctor Id not exist in system" });
+	}
+};
+
+async function getSignResults(Doctor_id, Hospital_id, xAxis, yAxis) {
+	var matching_query = [
+		{
+			$match: {
+				Hospital_id: Hospital_id,
+				_id: { $ne: mongoose.Types.ObjectId(Doctor_id) },
+				Role: Normal_User_Role,
+			},
+		},
+		{
+			$project: {
+				Doctor_id: "$_id",
+				_id: 0,
+			},
+		},
+	];
+
+	var group_query = [
+		{
+			$group: {
+				_id: {
+					Sign: "$Sign",
+					[xAxis]: `$${xAxis}`,
+				},
+				count: {
+					$sum: 1,
+				},
+			},
+		},
+		{
+			$project: {
+				Sign: "$_id.Sign",
+				[xAxis]: `$_id.${xAxis}`,
+				count: 1,
+				_id: 0,
+			},
+		},
+		{
+			$sort: {
+				[xAxis]: 1,
+			},
+		},
+		{
+			$group: {
+				_id: "$Sign",
+				data: {
+					$push: {
+						[xAxis]: `$${xAxis}`,
+						count: "$count",
+					},
+				},
+			},
+		},
+		{
+			$project: {
+				Sign: "$_id",
+				data: 1,
+				_id: 0,
+			},
+		},
+		{
+			$match: {
+				Sign: yAxis,
+			},
+		},
+	];
+
+	let lookup_query = [];
+
+	if (xAxis == "Age") {
+		lookup_query = [
+			{
+				$lookup: {
+					from: "Case",
+					let: { id: "$Doctor_id" },
+					pipeline: [
+						{ $match: { $expr: { $eq: ["$Doctor_id", "$$id"] } } },
+						{
+							$project: {
+								Sign: "$Symptoms.Sign",
+								Patient_id: "$Patient_id",
+								_id: 0,
+							},
+						},
+					],
+					as: "Case",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Case",
+				},
+			},
+			{
+				$project: {
+					Sign: "$Case.Sign",
+					Patient_id: "$Case.Patient_id",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Sign",
+				},
+			},
+			{
+				$lookup: {
+					from: "Patient",
+					let: { id: "$Patient_id" },
+					pipeline: [
+						{ $match: { $expr: { $eq: ["$_id", "$$id"] } } },
+						{
+							$project: {
+								Age: 1,
+								_id: 0,
+							},
+						},
+					],
+					as: "Patient",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Patient",
+				},
+			},
+			{
+				$project: {
+					Sign: 1,
+					Age: "$Patient.Age",
+				},
+			},
+		];
+	} else {
+		lookup_query = [
+			{
+				$lookup: {
+					from: "Case",
+					let: {
+						id: "$Doctor_id",
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$eq: ["$Doctor_id", "$$id"],
+								},
+							},
+						},
+						{
+							$project: {
+								Sign: "$Symptoms.Sign",
+								[xAxis]: {
+									$size: `$${xAxis}`,
+								},
+								Patient_id: "$Patient_id",
+								_id: 0,
+							},
+						},
+					],
+					as: "Case",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Case",
+				},
+			},
+			{
+				$project: {
+					Sign: "$Case.Sign",
+					[xAxis]: `$Case.${xAxis}`,
+					Patient_id: "$Case.Patient_id",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Sign",
+				},
+			},
+		];
+	}
+
+	const Analytics = await Doctor.aggregate([...matching_query, ...lookup_query, ...group_query]);
+
+	return Analytics;
+}
+
+async function getComplicationResult(Doctor_id, Hospital_id, xAxis, yAxis) {
+	let matching_query = [
+		{
+			$match: {
+				Hospital_id: Hospital_id,
+				_id: { $ne: mongoose.Types.ObjectId(Doctor_id) },
+				Role: Normal_User_Role,
+			},
+		},
+		{
+			$project: {
+				Doctor_id: "$_id",
+				_id: 0,
+			},
+		},
+	];
+
+	let group_query = [
+		{
+			$group: {
+				_id: {
+					Complications: "$Complications",
+					[xAxis]: `$${xAxis}`,
+				},
+				count: {
+					$sum: 1,
+				},
+			},
+		},
+		{
+			$project: {
+				Complications: "$_id.Complications",
+				[xAxis]: `$_id.${xAxis}`,
+				count: 1,
+				_id: 0,
+			},
+		},
+		{
+			$sort: {
+				Age: 1,
+			},
+		},
+		{
+			$group: {
+				_id: "$Complications",
+				data: {
+					$push: {
+						[xAxis]: `$${xAxis}`,
+						count: "$count",
+					},
+				},
+			},
+		},
+		{
+			$project: {
+				Complications: "$_id",
+				data: 1,
+				_id: 0,
+			},
+		},
+		{
+			$match: {
+				Complications: yAxis,
+			},
+		},
+	];
+
+	let lookup_query = [];
+
+	if (xAxis == "Age") {
+		lookup_query = [
+			{
+				$lookup: {
+					from: "Case",
+					let: {
+						id: "$Doctor_id",
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$eq: ["$Doctor_id", "$$id"],
+								},
+							},
+						},
+						{
+							$project: {
+								Complications: "$Clinical_Complications.Complications",
+								Patient_id: "$Patient_id",
+								_id: 0,
+							},
+						},
+					],
+					as: "Case",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Case",
+				},
+			},
+			{
+				$project: {
+					Complications: "$Case.Complications",
+					Patient_id: "$Case.Patient_id",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Complications",
+				},
+			},
+			{
+				$lookup: {
+					from: "Patient",
+					let: {
+						id: "$Patient_id",
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$eq: ["$_id", "$$id"],
+								},
+							},
+						},
+						{
+							$project: {
+								Age: 1,
+								_id: 0,
+							},
+						},
+					],
+					as: "Patient",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Patient",
+				},
+			},
+			{
+				$project: {
+					Complications: 1,
+					Age: "$Patient.Age",
+				},
+			},
+		];
+	} else {
+		lookup_query = [
+			{
+				$lookup: {
+					from: "Case",
+					let: {
+						id: "$Doctor_id",
+					},
+					pipeline: [
+						{
+							$match: {
+								$expr: {
+									$eq: ["$Doctor_id", "$$id"],
+								},
+							},
+						},
+						{
+							$project: {
+								Complications: "$Clinical_Complications.Complications",
+								[xAxis]: {
+									$size: `$${xAxis}`,
+								},
+								Patient_id: "$Patient_id",
+								_id: 0,
+							},
+						},
+					],
+					as: "Case",
+				},
+			},
+			{
+				$unwind: {
+					path: "$Case",
+				},
+			},
+			{
+				$project: {
+					Complications: "$Case.Complications",
+					[xAxis]: `$Case.${xAxis}`,
+				},
+			},
+			{
+				$unwind: {
+					path: "$Complications",
+				},
+			},
+		];
+	}
+
+	const Analytics = await Doctor.aggregate([...matching_query, ...lookup_query, ...group_query]);
+
+	return Analytics;
+}

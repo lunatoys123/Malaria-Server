@@ -281,7 +281,7 @@ export const viewReport = async (req, res) => {
 			},
 		},
 	]);
-
+	console.log(dataObject);
 	return res.status(200).send(dataObject);
 };
 
@@ -369,12 +369,32 @@ export const viewReportByCaseId = async (req, res) => {
 	]);
 
 	dataObject = dataObject[0];
-
+	//console.log(dataObject);
 	return res.status(200).send(dataObject);
 };
 
 export const getCaseByDoctorId = async (req, res) => {
 	const Doctor_id = req.query.Doctor_id;
+	const Page = Number(req.query.Page);
+	const limit = Number(req.query.limit);
+
+	var Max_count = await Case.aggregate([
+		{
+			$match: {
+				Doctor_id: mongoose.Types.ObjectId(Doctor_id),
+			},
+		},
+		{
+			$lookup: {
+				from: "Patient",
+				localField: "Patient_id",
+				foreignField: "_id",
+				as: "Patient",
+			},
+		},
+	]).count("Patient");
+
+	Max_count = Max_count[0].Patient;
 
 	const case_object = await Case.aggregate([
 		{
@@ -434,9 +454,23 @@ export const getCaseByDoctorId = async (req, res) => {
 				},
 			},
 		},
+		{
+			$sort: {
+				Patient_Name: 1,
+			},
+		},
+		{
+			$skip: (Page - 1) * limit,
+		},
+		{
+			$limit: limit,
+		},
 	]);
 
-	return res.status(200).send(case_object);
+	const Max_Page = Math.floor(Max_count / limit) + 1;
+	return res
+		.status(200)
+		.send({ case_object: case_object, Page: Page, limit: limit, Max_Page: Max_Page });
 };
 
 export const getCaseByCaseId = async (req, res) => {
@@ -629,6 +663,8 @@ export const SearchCasewithQuery = async (req, res) => {
 	const searchStatus = query.searchStatus;
 	const searchStartDate = query.searchStartDate;
 	const searchEndDate = query.searchEndDate;
+	const Page = Number(query.Page);
+	const limit = Number(query.limit);
 	//console.log(query);
 
 	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
@@ -663,6 +699,22 @@ export const SearchCasewithQuery = async (req, res) => {
 			dtCreated: { $lte: new Date(searchEndDate) },
 		};
 	}
+
+	var Max_count = await Case.aggregate([
+		{
+			$match: match_query,
+		},
+		{
+			$lookup: {
+				from: "Patient",
+				localField: "Patient_id",
+				foreignField: "_id",
+				as: "Patient",
+			},
+		},
+	]).count("Patient");
+
+	Max_count = Max_count[0].Patient;
 
 	const search_Object = await Case.aggregate([
 		{
@@ -725,9 +777,22 @@ export const SearchCasewithQuery = async (req, res) => {
 				},
 			},
 		},
+		{
+			$sort: {
+				Patient_Name: 1,
+			},
+		},
+		{
+			$skip: (Page - 1) * limit,
+		},
+		{
+			$limit: limit,
+		},
 	]);
 
-	console.log(search_Object);
-
-	return res.status(200).send(search_Object);
+	//console.log(search_Object);
+	const Max_Page = Math.floor(Max_count / limit) + 1;
+	return res
+		.status(200)
+		.send({ case_object: search_Object, Page: Page, limit: limit, Max_Page: Max_Page });
 };

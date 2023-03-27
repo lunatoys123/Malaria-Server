@@ -57,3 +57,8 @@ export const User_Status = {
 	newUser: "NewUser",
 	reset: "reset"
 }
+
+export const Y_Axis_Mode = {
+	searchWithSign: "searchWithSign",
+	searchWithComplications: "searchWithComplications",
+};
