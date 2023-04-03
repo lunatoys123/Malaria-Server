@@ -20,6 +20,7 @@ router.get(
 );
 router.get("/GetAllUserFromHospital", userController.GetAllUserFromHospital);
 router.get("/GetAuditFromDoctorId", checkAdminRight, userController.GetAuditFromDoctorId);
+router.get("/searchAuditByCode", checkAdminRight, userController.searchAuditByCode);
 router.get("/SearchQueryForUser", checkAdminRight, userController.SearchQueryForUser);
 router.get("/HospitalSummaryData", checkAdminRight, userController.HospitalSummaryData);
 router.get("/TreatmentSummaryData", checkAdminRight, userController.TreatmentSummaryData);

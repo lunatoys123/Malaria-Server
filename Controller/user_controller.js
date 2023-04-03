@@ -66,6 +66,7 @@ export const Register = async (req, res) => {
 
 	const exist_hospital_id = await Hospital.findOne({ _id: Hospital_id });
 	if (exist_hospital_id == null) {
+		//console.log("Hospital id not exist");
 		return res.status(400).send({ status: status_code.Failed, Error: "Hospital id not exist" });
 	}
 
@@ -141,6 +142,7 @@ export const Login = async (req, res) => {
 		Role: 1,
 		Account_status: 1,
 		Password: 1,
+		Hospital_id: 1,
 	});
 	if (!user) {
 		return res.status(400).send({ status: status_code.Failed, Error: "User Not exist" });
@@ -171,7 +173,7 @@ export const Login = async (req, res) => {
 			token,
 		});
 	} else {
-		return res.status(404).send({ status: status_code.Failed, Message: "Wrong Password" });
+		return res.status(404).send({ status: status_code.Failed, Error: "Wrong Password" });
 	}
 };
 
@@ -312,6 +314,61 @@ export const GetAuditFromDoctorId = async (req, res) => {
 	return res.status(200).send(Doctor_Object);
 };
 
+export const searchAuditByCode = async (req, res) => {
+	var Doctor_id = req.query.target_Doctor_id;
+	const selectAuditCode = req.query.selectAuditCode;
+	const Page = Number(req.query.page);
+	const limit = Number(req.query.limit);
+
+	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
+		return res.status(404).send({
+			status: status_code.Failed,
+			Error: "Doctor id format is not valid",
+		});
+	}
+
+	const Doctor_Query = [
+		{
+			$match: {
+				Doctor_id: mongoose.Types.ObjectId(Doctor_id),
+				Audit_Code: { $regex: selectAuditCode },
+			},
+		},
+	];
+
+	const MaxAudit = await Audit.aggregate([...Doctor_Query]);
+
+	var Audit_Object = await Audit.aggregate([
+		...Doctor_Query,
+		{
+			$project: {
+				Audit_Code: 1,
+				Activity: 1,
+				dtCreated: 1,
+				_id: 0,
+			},
+		},
+		{
+			$skip: (Page - 1) * limit,
+		},
+		{
+			$limit: limit,
+		},
+	]);
+
+	Audit_Object = Audit_Object.map(d => {
+		return {
+			Audit_Code: d.Audit_Code,
+			Activity: d.Activity,
+			dtCreated: moment(d.dtCreated).format("YYYY-MM-DD hh:mm").toString(),
+		};
+	});
+
+	const Max_Page = Math.floor(MaxAudit.length / limit) + 1;
+
+	return res.status(200).send({ Audit_Log: Audit_Object, Page, limit, Max_Page });
+};
+
 export const ForgetordProcess = async (req, res) => {
 	const Email = req.body.Email;
 
@@ -399,6 +456,9 @@ export const RecoveryAuthentication = async (req, res) => {
 
 export const deleteUser = async (req, res) => {
 	var Doctor_id = req.body.Doctor_id;
+	const Page = Number(req.body.page);
+	const searchQuery = req.body.searchQuery;
+	const limit = Number(req.body.limit);
 
 	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		return res.status(404).send({
@@ -422,32 +482,57 @@ export const deleteUser = async (req, res) => {
 	).catch(err => {
 		return res
 			.status(400)
-			.send({ status: status_code.Failed, Message: "Internal Error: Account Status not updated" });
+			.send({ status: status_code.Failed, Error: "Internal Error: Account Status not updated" });
 	});
 
 	if (Doctor_Object) {
 		const Hospital_id = Doctor_Object.Hospital_id;
-		const NormalUser = await Doctor.find(
-			{ Hospital_id: Hospital_id, Role: Normal_User_Role },
-			{ Login_name: 1, Email: 1, Phone_number: 1, Account_status: 1 }
-		).catch(err => {
-			return res.status(404).send({ status: status_code.Failed, Message: err });
-		});
+		const NormalUser = await Doctor.aggregate([
+			{
+				$match: {
+					Hospital_id: Hospital_id,
+					Role: Normal_User_Role,
+					Login_name: { $regex: searchQuery, $options: "i" },
+				},
+			},
+			{
+				$project: {
+					Login_name: 1,
+					Email: 1,
+					Phone_number: 1,
+					Account_status: 1,
+				},
+			},
+			{
+				$skip: (Page - 1) * limit,
+			},
+			{
+				$limit: limit,
+			},
+		]);
+
+		const Max_Page = Math.floor(NormalUser.length / limit) + 1;
 
 		return res.status(200).send({
 			status: status_code.Success,
 			AccountManagement: NormalUser,
 			Message: `user ${Doctor_Object.Login_name} deleted successfully`,
+			Page,
+			limit,
+			Max_Page,
 		});
 	} else {
 		return res
 			.status(400)
-			.send({ status: status_code.Failed, Message: "Doctor not exists in System" });
+			.send({ status: status_code.Failed, Error: "Doctor not exists in System" });
 	}
 };
 
 export const recoverUser = async (req, res) => {
 	var Doctor_id = req.body.Doctor_id;
+	const Page = Number(req.body.page);
+	const searchQuery = req.body.searchQuery;
+	const limit = Number(req.body.limit);
 
 	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		return res.status(404).send({
@@ -476,17 +561,39 @@ export const recoverUser = async (req, res) => {
 
 	if (Doctor_Object) {
 		const Hospital_id = Doctor_Object.Hospital_id;
-		const NormalUser = await Doctor.find(
-			{ Hospital_id: Hospital_id, Role: Normal_User_Role },
-			{ Login_name: 1, Email: 1, Phone_number: 1, Account_status: 1 }
-		).catch(err => {
-			return res.status(404).send({ status: status_code.Failed, Message: err });
-		});
+		const NormalUser = await Doctor.aggregate([
+			{
+				$match: {
+					Hospital_id: Hospital_id,
+					Role: Normal_User_Role,
+					Login_name: { $regex: searchQuery, $options: "i" },
+				},
+			},
+			{
+				$project: {
+					Login_name: 1,
+					Email: 1,
+					Phone_number: 1,
+					Account_status: 1,
+				},
+			},
+			{
+				$skip: (Page - 1) * limit,
+			},
+			{
+				$limit: limit,
+			},
+		]);
+
+		const Max_Page = Math.floor(NormalUser.length / limit) + 1;
 
 		return res.status(200).send({
 			status: status_code.Success,
 			AccountManagement: NormalUser,
 			Message: `user ${Doctor_Object.Login_name} recover successfully`,
+			Page,
+			limit,
+			Max_Page,
 		});
 	} else {
 		return res
@@ -500,9 +607,6 @@ export const SearchQueryForUser = async (req, res) => {
 	const searchQuery = req.query.searchQuery;
 	const Page = Number(req.query.Page);
 	const limit = Number(req.query.limit);
-
-	// console.log(Page);
-	// console.log(limit);
 
 	if (mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		Doctor_id = mongoose.Types.ObjectId(Doctor_id);

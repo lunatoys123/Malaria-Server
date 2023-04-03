@@ -667,6 +667,7 @@ export const SearchCasewithQuery = async (req, res) => {
 	const limit = Number(query.limit);
 	//console.log(query);
 
+
 	if (!mongoose.Types.ObjectId.isValid(Doctor_id)) {
 		return res.status(404).send({
 			status: status_code.Failed,
@@ -700,7 +701,7 @@ export const SearchCasewithQuery = async (req, res) => {
 		};
 	}
 
-	var Max_count = await Case.aggregate([
+	var Patient_count = await Case.aggregate([
 		{
 			$match: match_query,
 		},
@@ -712,9 +713,17 @@ export const SearchCasewithQuery = async (req, res) => {
 				as: "Patient",
 			},
 		},
-	]).count("Patient");
-
-	Max_count = Max_count[0].Patient;
+		{
+			$unwind: {
+				path: "$Patient",
+			},
+		},
+		{
+			$match: {
+				"Patient.Name": { $regex: PatientName, $options: "i" },
+			},
+		},
+	]);
 
 	const search_Object = await Case.aggregate([
 		{
@@ -791,7 +800,8 @@ export const SearchCasewithQuery = async (req, res) => {
 	]);
 
 	//console.log(search_Object);
-	const Max_Page = Math.floor(Max_count / limit) + 1;
+	const Max_Page = Math.floor(Patient_count.length / limit) + 1;
+
 	return res
 		.status(200)
 		.send({ case_object: search_Object, Page: Page, limit: limit, Max_Page: Max_Page });

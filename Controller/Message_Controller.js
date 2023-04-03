@@ -52,7 +52,7 @@ export const GetMessageForUser = async (req, res) => {
 	).catch(err => {
 		return res.status(400).send({ status: status_code.Failed, Error: err });
 	});
-
+	//console.log(Message_Object)
 	return res.status(200).send({ Message_Object: Message_Object });
 };
 
@@ -106,6 +106,8 @@ export const SearchMessage = async (req, res) => {
 	const Doctor_Id = req.query.Doctor_Id;
 	const search_query = req.query.query;
 
+	//console.log(req.query);
+
 	if (!mongoose.Types.ObjectId.isValid(Doctor_Id)) {
 		return res.status(404).send({
 			status: status_code.Failed,
@@ -149,6 +151,8 @@ export const SearchMessage = async (req, res) => {
 			},
 		},
 	]);
+
+	//console.log(search_Message);
 
 	return res.status(200).send({ Message_Object: search_Message });
 };
