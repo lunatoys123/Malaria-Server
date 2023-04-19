@@ -1,4 +1,4 @@
-# Malara App (BackEnd-End)
+# Malara App (Back-End)
 
 This project was bootstrapped with Expo. For more information, please refer to [Expo docs](https://docs.expo.dev/)
 
