@@ -1,0 +1,14 @@
+
+services:
+  server:
+    build: .
+    ports:
+      - 4000:4000
+    environment:
+      - mail_pass=odyhoziqkunvjkcj
+      - DBURL=mongodb+srv://lunatoys:lunatoys@cluster0.9yv231a.mongodb.net/Malaria?retryWrites=true&w=majority
+      - Redis_host=redis-15102.c1.asia-northeast1-1.gce.cloud.redislabs.com
+      - Redis_pass=uqgxpw3cmG6oZy32W5ywA2QuDwUE9psT
+    volumes:
+      - ./:/app
+      - /app/node_modules
