@@ -10,5 +10,4 @@ services:
       - Redis_host=redis-15102.c1.asia-northeast1-1.gce.cloud.redislabs.com
       - Redis_pass=uqgxpw3cmG6oZy32W5ywA2QuDwUE9psT
     volumes:
-      - ./:/app
       - /app/node_modules

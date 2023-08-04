@@ -23,6 +23,10 @@ app.use(morgan("tiny"));
 app.use(cors());
 app.options("*", cors());
 
+app.use("/Malaria/HealthCheck", async (req, res) => {
+	return res.json("HealthCheck for Malaria-Server");
+});
+
 app.use(authJWT());
 app.use(errorHandler);
 
