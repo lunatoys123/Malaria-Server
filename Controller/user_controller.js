@@ -20,7 +20,7 @@ const Redis_host = process.env.Redis_host;
 const Redis_pass = process.env.Redis_pass;
 const client = new Redis({
 	host: Redis_host,
-	port: 15102,
+	port: 14320,
 	password: Redis_pass,
 });
 
